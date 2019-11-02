@@ -10,10 +10,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     
     <!-- Bootstrap / CSS -->
+    <link rel="stylesheet" type="text/css" href="assets/css/reset.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
-    <link rel="stylesheet" href="assets/css/reset.css">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/style.css">
     
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-app.js"></script>
@@ -23,6 +23,17 @@
 </head>
 
 <body>
+
+    <div id="content" class="row">
+    
+        <div id="content-menu" class="col-lg-12 rps">
+            <h1>Rock - Paper - Scissors</h1>
+            <h3 id="menu-msg" class="rps">Select A Mode</h3>
+            <button id="mode-solo" class="mode-btn">Solo Play</button>
+            <button id="mode-online" class="mode-btn">Online Play</button>
+        </div>
+    
+    </div>
 
     <script src="assets/javascript/main.js"></script>
 
