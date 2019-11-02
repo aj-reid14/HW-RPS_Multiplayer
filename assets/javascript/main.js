@@ -12,5 +12,27 @@
 
   $(document).ready(function()
   {
-      
+      $("#content-game").css("display", "none");
+      ConfigureButtons();
   })
+
+  function ConfigureButtons()
+  {
+      $("#mode-solo").click(function()
+      {
+          $("#content-menu").css("display", "none");
+          $("#content-game").css("display", "initial");
+      })
+
+      $("#mode-online").click(function()
+      {
+          $("#content-menu").css("display", "none");
+          $("#content-game").css("display", "initial");
+      })
+
+      $("#home-btn").click(function()
+      {
+          $("#content-game").css("display", "none");
+          $("#content-menu").css("display", "initial");
+      })
+  }
