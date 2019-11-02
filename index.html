@@ -34,10 +34,18 @@
         </div>
 
         <div id="content-game" class="col-lg-12 rps">
-                <button id="rock-btn" class="rps-btn">Rock</button>
-                <button id="paper-btn" class="rps-btn">Paper</button>
-                <button id="scissors-btn" class="rps-btn">Scissors</button>
-                <button id="home-btn" class="home-btn">Home</button>
+            
+            <p>Wins: <span id="win"></span></p>
+            <p>Losses: <span id="loss"></span></p>
+            <p>Draws: <span id="draw"></span></p>
+            
+            <button id="rock-btn" value="rock" class="play-btn">Rock</button>
+            <button id="paper-btn" value="paper" class="play-btn">Paper</button>
+            <button id="scissors-btn" value="scissors" class="play-btn">Scissors</button>
+            <button id="rematch-btn" class="rps-btn">Rematch</button>
+            <button id="home-btn" class="rps-btn">Home</button>
+            
+            <h4><span id="game-msg"></span></h4>
         </div>
     
     </div>
