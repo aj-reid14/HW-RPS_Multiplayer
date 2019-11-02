@@ -1,5 +1,3 @@
-let mode;
-
 var firebaseConfig = {
     apiKey: "AIzaSyA6pCTHavcLWKgngWrzWBOLcUXTveCDD9Y",
     authDomain: "rps-multiplayer-7d6d7.firebaseapp.com",
@@ -11,6 +9,11 @@ var firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+let database = firebase.database();
+let connectionsRef = database.ref("/connections");
+let connectedRef = database.ref(".info/connected");
+
+let mode;
 
 $(document).ready(function () {
     $("#content-game").css("display", "none");
@@ -23,15 +26,18 @@ function ConfigureButtons() {
 
         $("#content-menu").css("display", "none");
         $("#content-game").css("display", "initial");
+        $("#content-online").css("display", "none");
 
         ResetSoloGame();
     })
 
     $("#mode-online").click(function () {
         mode = "online";
+        OnlinePlay();
 
         $("#content-menu").css("display", "none");
         $("#content-game").css("display", "initial");
+        $("#content-online").css("display", "initial");
     })
 
     $("#home-btn").click(function () {
@@ -51,6 +57,10 @@ function ConfigureButtons() {
     $("#rematch-btn").click(function () {
         ResetSoloGame();
     })
+
+    $("#test-btn").click(function() {
+    })
+
 }
 
 let gameActive = false;
@@ -142,4 +152,20 @@ function EvaluateRound(choice1) {
     UpdateScore();
     gameActive = false;
 
+}
+
+function OnlinePlay()
+{
+
+    connectedRef.on("value", function(snapshot) {
+        if (snapshot.val())
+        {
+            let con = connectionsRef.push(true);
+            con.onDisconnect().remove();
+        }
+    })
+
+    connectionsRef.on("value", function(snapshot) {
+        $("#player-count").text(snapshot.numChildren());
+    })
 }
