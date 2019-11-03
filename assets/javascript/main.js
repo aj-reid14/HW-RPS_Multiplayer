@@ -14,9 +14,21 @@ let connectionsRef = database.ref("/connections");
 let connectedRef = database.ref(".info/connected");
 
 let mode;
-let textArray = [];
+let onlineMSGS = [];
+let players = [];
 
-$(document).ready(function () {    
+$(document).ready(function () {
+
+    SwitchPage("home");
+    ConfigureButtons();
+    ConfigureFirebase();
+})
+
+function ConfigureFirebase() {
+
+    database.ref().set({
+        connected: null
+    })
 
     connectedRef.on("value", function(snapshot) {
         if (snapshot.val())
@@ -26,9 +38,12 @@ $(document).ready(function () {
         }
     })
 
-    SwitchPage("home");
-    ConfigureButtons();
-})
+    database.ref().on("value", function(snapshot)
+    {
+        console.log(snapshot.val());
+    })
+    
+}
 
 function ConfigureButtons() {
     $("#mode-solo").click(function () {
@@ -60,7 +75,10 @@ function ConfigureButtons() {
         ResetSoloGame();
     })
 
-    $("#join").click(function() {
+    $("#join").click(function(event) {
+
+        event.preventDefault();
+    
         let userText = $("#input-username").val().trim();
         let extraMSG = "";
 
@@ -70,7 +88,18 @@ function ConfigureButtons() {
             $("#input-username").attr("placeholder", "Invalid Username!");
         }
         else {
+
+            let newPlayer = 
+            {
+                name: userText,
+                state: "connected"
+            }
+
+            AddPlayer(newPlayer);            
             SwitchPage("online");
+
+            $("#input-username").val("");
+            $("#input-username").attr("placeholder", "Enter a username");
         }
 
         console.log("-" + userText + "-" + extraMSG);
@@ -87,20 +116,18 @@ function ConfigureButtons() {
         }
         else {
 
-            if (textArray.length < 3) {
-                textArray.push(userText);
-                $("#online-text").val(textArray.join("\n"));
-                console.log(textArray);
-            }
-            else {
-                textArray.shift();
-                textArray.push(userText);
-                $("#online-text").val(textArray.join("\n"));
-                console.log(textArray);
-
-            }
+            // if (onlineMSGS.length < 3) {
+            //     onlineMSGS.push(userText);
+            //     $("#online-text").val(onlineMSGS.join("\n"));
+            //     console.log(onlineMSGS);
+            // }
+            // else {
+            //     onlineMSGS.shift();
+            //     onlineMSGS.push(userText);
+            //     $("#online-text").val(onlineMSGS.join("\n"));
+            //     console.log(onlineMSGS);
+            // }
         }
-        // $("#input-username").val("");
     })
 
 }
@@ -214,35 +241,49 @@ function EvaluateRound(pChoice) {
 
 }
 
-function OnlinePlay()
-{
+function OnlinePlay() {
 
-    connectionsRef.on("value", function(snapshot) {
+    connectionsRef.on("value", function (snapshot) {
         $("#player-count").text(snapshot.numChildren());
     })
 }
 
-function SwitchPage(page)
-{
+function UpdateOnlineMSGS() {
+    $("#online-text").val(onlineMSGS.join("\n"));
+}
+
+function AddPlayer(p) {
+    players.push(p);
+    onlineMSGS.push("-" + p.name + "- " + p.state);
+    UpdateOnlineMSGS();
+
+    database.ref().set(
+        {connected: players}
+    )
+
+}
+
+function SwitchPage(page) {
     switch (page) {
         case "home":
-                $("#content-menu").css("display", "initial");
-                $("#content-solo").css("display", "none");
-                $("#content-entry").css("display", "none");
+            $("#content-menu").css("display", "initial");
+            $("#content-solo").css("display", "none");
+            $("#content-entry").css("display", "none");
+            $("#content-online").css("display", "none");
             break;
         case "solo":
-                $("#content-menu").css("display", "none");
-                $("#content-solo").css("display", "initial");
-                $("#content-online").css("display", "none");
+            $("#content-menu").css("display", "none");
+            $("#content-solo").css("display", "initial");
+            $("#content-online").css("display", "none");
             break;
         case "online-entry":
-                $("#content-menu").css("display", "none");
-                $("#content-solo").css("display", "none");
-                $("#content-entry").css("display", "initial");
+            $("#content-menu").css("display", "none");
+            $("#content-solo").css("display", "none");
+            $("#content-entry").css("display", "initial");
             break;
         case "online":
-                $("#content-menu").css("display", "none");
-                $("#content-online").css("display", "initial");
+            $("#content-menu").css("display", "none");
+            $("#content-online").css("display", "initial");
             break;
     }
 }
