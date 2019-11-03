@@ -14,6 +14,7 @@ let connectionsRef = database.ref("/connections");
 let connectedRef = database.ref(".info/connected");
 
 let mode;
+let textArray = [];
 
 $(document).ready(function () {    
 
@@ -76,7 +77,30 @@ function ConfigureButtons() {
     })
 
     $("#test-btn").click(function() {
-        console.log(con);
+        let userText = $("#input-username").val().trim();
+        
+        console.log(userText);
+
+        if (!userText) {
+            $("#input-username").val("");
+            $("#input-username").attr("placeholder", "Invalid Username!");
+        }
+        else {
+
+            if (textArray.length < 3) {
+                textArray.push(userText);
+                $("#online-text").val(textArray.join("\n"));
+                console.log(textArray);
+            }
+            else {
+                textArray.shift();
+                textArray.push(userText);
+                $("#online-text").val(textArray.join("\n"));
+                console.log(textArray);
+
+            }
+        }
+        // $("#input-username").val("");
     })
 
 }
