@@ -15,34 +15,36 @@ let connectedRef = database.ref(".info/connected");
 
 let mode;
 
-$(document).ready(function () {
-    $("#content-game").css("display", "none");
+$(document).ready(function () {    
+
+    connectedRef.on("value", function(snapshot) {
+        if (snapshot.val())
+        {
+            let con = connectionsRef.push(true);
+            con.onDisconnect().remove();
+        }
+    })
+
+    SwitchPage("home");
     ConfigureButtons();
 })
 
 function ConfigureButtons() {
     $("#mode-solo").click(function () {
         mode = "solo";
-
-        $("#content-menu").css("display", "none");
-        $("#content-game").css("display", "initial");
-        $("#content-online").css("display", "none");
-
+        SwitchPage("solo");
         ResetSoloGame();
     })
 
     $("#mode-online").click(function () {
         mode = "online";
+        SwitchPage("online-entry");
         OnlinePlay();
-
-        $("#content-menu").css("display", "none");
-        $("#content-game").css("display", "initial");
-        $("#content-online").css("display", "initial");
     })
 
     $("#home-btn").click(function () {
-        $("#content-game").css("display", "none");
-        $("#content-menu").css("display", "initial");
+        mode = "";
+        SwitchPage("home");
     })
 
     $(document.body).on("click", ".play-btn", function () {
@@ -58,6 +60,22 @@ function ConfigureButtons() {
         ResetSoloGame();
     })
 
+    $("#join").click(function() {
+        let userText = $("#input-username").val().trim();
+        let extraMSG = "";
+
+        if (!userText) {
+            extraMSG = " (EMPTY)";
+            $("#input-username").val("");
+            $("#input-username").attr("placeholder", "Invalid Username!");
+        }
+        else {
+            SwitchPage("online");
+        }
+
+        console.log("-" + userText + "-" + extraMSG);
+    })
+
     $("#test-btn").click(function() {
     })
 
@@ -71,6 +89,9 @@ let wins = 0;
 let losses = 0;
 let draws = 0;
 
+let p1_wins = 0;
+let p2_wins = 0;
+
 function ResetSoloGame() {
     gameActive = true;
     cpuChoice = choices[Math.floor(Math.random() * 3)];
@@ -82,21 +103,33 @@ function ResetSoloGame() {
 }
 
 function UpdateScore() {
-    $("#game-msg").text(game_msg);
-    $("#win").text(wins);
-    $("#loss").text(losses);
-    $("#draw").text(draws);
+
+    switch (mode) {
+        case "solo":
+            $("#game-msg").text(game_msg);
+            $("#win").text(wins);
+            $("#loss").text(losses);
+            $("#draw").text(draws);
+            break;
+
+        case "online":
+            $("#game-msg").text(game_msg);
+            $("#win").text(p1_wins);
+            $("#loss").text(p2_wins);
+            $("#draw").text("N/A");
+            break;
+    }
 }
 
-function EvaluateRound(choice1) {
-    //   Returns true if "choice1" wins against "cpuChoice"
-    //   Returns false if "cpuChoice" wins against "choice1"
+function EvaluateRound(pChoice) {
+    //   Returns true if "pChoice" wins against "cpuChoice"
+    //   Returns false if "cpuChoice" wins against "pChoice"
 
-    console.log("PLAYER: " + choice1);
+    console.log("PLAYER: " + pChoice);
 
     let result;
 
-    switch (choice1) {
+    switch (pChoice) {
         case "rock":
             switch (cpuChoice) {
                 case "rock":
@@ -157,15 +190,32 @@ function EvaluateRound(choice1) {
 function OnlinePlay()
 {
 
-    connectedRef.on("value", function(snapshot) {
-        if (snapshot.val())
-        {
-            let con = connectionsRef.push(true);
-            con.onDisconnect().remove();
-        }
-    })
-
     connectionsRef.on("value", function(snapshot) {
         $("#player-count").text(snapshot.numChildren());
     })
+}
+
+function SwitchPage(page)
+{
+    switch (page) {
+        case "home":
+                $("#content-solo").css("display", "none");
+                $("#content-entry").css("display", "none");
+                $("#content-menu").css("display", "initial");
+            break;
+        case "solo":
+                $("#content-menu").css("display", "none");
+                $("#content-solo").css("display", "initial");
+                $("#content-online").css("display", "none");
+            break;
+        case "online-entry":
+                $("#content-menu").css("display", "none");
+                $("#content-solo").css("display", "none");
+                $("#content-entry").css("display", "initial");
+            break;
+        case "online":
+                $("#content-menu").css("display", "none");
+                $("#content-online").css("display", "initial");
+            break;
+    }
 }
