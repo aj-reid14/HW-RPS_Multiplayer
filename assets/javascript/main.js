@@ -42,8 +42,7 @@ function ConfigureButtons() {
         OnlinePlay();
     })
 
-    $("#home-btn").click(function () {
-        mode = "";
+    $(".home").click(function () {
         SwitchPage("home");
     })
 
@@ -77,6 +76,7 @@ function ConfigureButtons() {
     })
 
     $("#test-btn").click(function() {
+        console.log(con);
     })
 
 }
@@ -117,6 +117,9 @@ function UpdateScore() {
             $("#win").text(p1_wins);
             $("#loss").text(p2_wins);
             $("#draw").text("N/A");
+            break;
+
+        default:
             break;
     }
 }
@@ -199,9 +202,9 @@ function SwitchPage(page)
 {
     switch (page) {
         case "home":
+                $("#content-menu").css("display", "initial");
                 $("#content-solo").css("display", "none");
                 $("#content-entry").css("display", "none");
-                $("#content-menu").css("display", "initial");
             break;
         case "solo":
                 $("#content-menu").css("display", "none");
