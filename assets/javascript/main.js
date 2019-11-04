@@ -41,6 +41,7 @@ let gameState = {
 
 $(document).ready(function () {
 
+    // ClearSessionStorage();
     SwitchPage("home");
     ConfigureButtons();
     ConfigureFirebase();
@@ -52,32 +53,43 @@ $(document).ready(function () {
 
 function ConfigureFirebase() {
 
+    connectionsRef.on("value", function (snapshot) {
+
+        connectedCount = snapshot.numChildren();
+        $("#connected-count").text(connectedCount);
+    })
+
     connectedRef.on("value", function(snapshot) {
-        if (snapshot.val())
-        {
+        if (snapshot.val()) {
+
             let con = connectionsRef.push(true);
             con.onDisconnect().remove();
+
+            database.ref("/Room 1").once("value").then(function(roomSnapshot) {
+                UpdatePlayerConnections();
+            })
+
         }
     })
 
-    database.ref().on("value", function(snapshot)
+    database.ref("Room 1").on("value", function(snapshot)
     {
         sv = snapshot.val();
 
         playersConnected = 0;
 
-        if (sv["Room 1"].p1_status === "[connected]")
+        if (sv.p1_status === "[connected]")
             playersConnected++;
 
-        if (sv["Room 1"].p2_status === "[connected]")
+        if (sv.p2_status === "[connected]")
             playersConnected++;
 
-            gameState.p1_username = sv["Room 1"].p1_username;
-            gameState.p1_status = sv["Room 1"].p1_status;
-            gameState.p1_score = sv["Room 1"].p1_score;
-            gameState.p2_username = sv["Room 1"].p2_username;
-            gameState.p2_status = sv["Room 1"].p2_status;
-            gameState.p2_score = sv["Room 1"].p2_score;
+            gameState.p1_username = sv.p1_username;
+            gameState.p1_status = sv.p1_status;
+            gameState.p1_score = sv.p1_score;
+            gameState.p2_username = sv.p2_username;
+            gameState.p2_status = sv.p2_status;
+            gameState.p2_score = sv.p2_score;
 
         database.ref("Room 1/").set(
             {
@@ -91,11 +103,11 @@ function ConfigureFirebase() {
             }
         )
 
-        if (sv["Room 1"].p1_status === "[connected]") {
+        if (sv.p1_status === "[connected]") {
             $("#join-p1").attr("disabled", true);
         }
 
-        if (sv["Room 1"].p2_status === "[connected]") {
+        if (sv.p2_status === "[connected]") {
             $("#join-p2").attr("disabled", true);
         }
 
@@ -136,15 +148,13 @@ function ConfigureButtons() {
 
     $("#join").click(function () {
 
-        let userText = $("#input-username").val().trim();
+        thisPlayer = $("#input-username").val().trim();
 
-        if (!userText) {
+        if (!thisPlayer) {
             $("#input-username").val("");
             $("#input-username").attr("placeholder", "Invalid Username!");
         }
         else {
-
-            thisPlayer = userText;
 
             if (playersConnected < 2) {
                 switch (playersConnected) {
@@ -160,6 +170,9 @@ function ConfigureButtons() {
                             p2_username: gameState.p2_username,
                             p2_score: gameState.p2_score
                         })
+
+                        sessionStorage.setItem("player", thisPlayer)
+
                         break;
                     case 1:
                         $("#p2").attr("value", "[connected]");
@@ -173,6 +186,9 @@ function ConfigureButtons() {
                             p2_username: thisPlayer,
                             p2_score: 0,
                         })
+
+                        sessionStorage.setItem("player", thisPlayer);
+
                         break;
                 }
             }
@@ -185,14 +201,11 @@ function ConfigureButtons() {
 
     $("#leave").click(function () {
         UpdatePlayerConnections();
+        $("#join").attr("disabled", false);
     })
 
     $("#reset").click(function() {
         ResetFirebase();
-    })
-
-    $("#cookie").click(function() {
-        AddCookie();
     })
 
 }
@@ -205,6 +218,17 @@ function ResetSoloGame() {
 
     game_msg = "Make Your Move!";
     UpdateScore();
+}
+
+function UpdateGameState(sv) {
+
+    gameState.p1_username = sv.p1_username;
+    gameState.p1_status = sv.p1_status;
+    gameState.p1_score = sv.p1_score;
+    gameState.p2_username = sv.p2_username;
+    gameState.p2_status = sv.p2_status;
+    gameState.p2_score = sv.p2_score;
+
 }
 
 function UpdateScore() {
@@ -297,10 +321,7 @@ function EvaluateRound(pChoice) {
 
 function OnlinePlay() {
 
-    connectionsRef.on("value", function (snapshot) {
-        connectedCount = snapshot.numChildren();
-        $("#connected-count").text(connectedCount);
-    })
+
 }
 
 function ResetFirebase() {
@@ -317,50 +338,54 @@ function ResetFirebase() {
 
 }
 
-function AddCookie() {
-
-    document.cookie = "name=; expires=Thu, 01 Jan 1970 00:00:00 UTC";
-
-    document.cookie = "cookie=Chocolate Chip; samesite=lax; expires=Thu, 07 Oct 1970 00:00:00 UTC";
-    console.log(document.cookie);
+function ClearSessionStorage()
+{
+    sessionStorage.clear();
 }
 
 function UpdatePlayerConnections()
 {
 
-    console.log(thisPlayer);
+    thisPlayer = sessionStorage.getItem("player");
 
-    // if (thisPlayer !== "") {
+    database.ref("Room 1").once("value").then(function (snapshot) {
+        UpdateGameState(snapshot.val());
+    })
 
-    //     switch (thisPlayer) {
-    //         case gameState.p1_username:
-    //             $("#p1").attr("value", "[not connected]");
-    //             $("#p1").attr("name", "");
+    if (thisPlayer !== "") {
 
-    //             database.ref("Room 1").set({
-    //                 p1_status: $("#p1").attr("value"),
-    //                 p1_username: $("#p1").attr("name", ""),
-    //                 p1_score: 0,
-    //                 p2_status: gameState.p2_status,
-    //                 p2_username: gameState.p2_username,
-    //                 p2_score: gameState.p2_score
-    //             })
-    //             break;
-    //         case gameState.p2_username:
-    //             $("#p2").attr("value", "[not connected]");
-    //             $("#p2").attr("name", "");
+        switch (thisPlayer) {
+            case gameState.p1_username:
+                $("#p1").attr("value", "[not connected]");
+                $("#p1").attr("name", "");
 
-    //             database.ref("Room 1").set({
-    //                 p1_status: gameState.p1_status,
-    //                 p1_username: gameState.p1_username,
-    //                 p1_score: gameState.p1_score,
-    //                 p2_status: $("#p2").attr("value"),
-    //                 p2_username: $("#p2").attr("name", ""),
-    //                 p2_score: 0,
-    //             })
-    //             break;
-    //     }
-    // }
+                database.ref("Room 1").set({
+                    p1_status: $("#p1").attr("value"),
+                    p1_username: $("#p1").attr("name"),
+                    p1_score: 0,
+                    p2_status: gameState.p2_status,
+                    p2_username: gameState.p2_username,
+                    p2_score: gameState.p2_score
+                })
+                break;
+            case gameState.p2_username:
+                $("#p2").attr("value", "[not connected]");
+                $("#p2").attr("name", "");
+
+                database.ref("Room 1").set({
+                    p1_status: gameState.p1_status,
+                    p1_username: gameState.p1_username,
+                    p1_score: gameState.p1_score,
+                    p2_status: $("#p2").attr("value"),
+                    p2_username: $("#p2").attr("name"),
+                    p2_score: 0,
+                })
+                break;
+        }
+
+        sessionStorage.removeItem("player");
+
+    }
 }
 
 function UpdateOnlineMSGS() {
