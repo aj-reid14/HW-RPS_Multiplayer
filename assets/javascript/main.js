@@ -30,14 +30,6 @@ let mode;
 let onlineMSGS = [];
 let thisPlayer;
 let playersConnected;
-let gameState = {
-    p1_username: "",
-    p1_status: "",
-    p1_score: "",
-    p2_username: "",
-    p2_status: "",
-    p2_score: ""
-};
 
 $(document).ready(function () {
 
@@ -59,61 +51,46 @@ function ConfigureFirebase() {
         $("#connected-count").text(connectedCount);
     })
 
-    connectedRef.on("value", function(snapshot) {
+    connectedRef.on("value", function (snapshot) {
         if (snapshot.val()) {
 
             let con = connectionsRef.push(true);
             con.onDisconnect().remove();
 
-            database.ref("/Room 1").once("value").then(function(roomSnapshot) {
+            database.ref("Room 1").once("value").then(function (roomSnapshot) {
                 UpdatePlayerConnections();
             })
 
         }
     })
 
-    database.ref("Room 1").on("value", function(snapshot)
-    {
-        sv = snapshot.val();
+    database.ref("Room 1").on("value", function (snapshot) {
+        let roomSnapshot = snapshot.val();
 
-        playersConnected = 0;
+        if (mode === "online") {
+            if (roomSnapshot.playersConnected === 2) {
+                SwitchPage("online");
+            }
+            else {
+                SwitchPage("online-entry");
+            }
+        }
 
-        if (sv.p1_status === "[connected]")
-            playersConnected++;
-
-        if (sv.p2_status === "[connected]")
-            playersConnected++;
-
-            gameState.p1_username = sv.p1_username;
-            gameState.p1_status = sv.p1_status;
-            gameState.p1_score = sv.p1_score;
-            gameState.p2_username = sv.p2_username;
-            gameState.p2_status = sv.p2_status;
-            gameState.p2_score = sv.p2_score;
-
-        database.ref("Room 1/").set(
+        database.ref("Room 1").set(
             {
-                p1_username: gameState.p1_username,
-                p1_status: gameState.p1_status,
-                p1_score: gameState.p1_score,
-                p2_username: gameState.p2_username,
-                p2_status: gameState.p2_status,
-                p2_score: gameState.p2_score,
-                playersConnected: playersConnected
+                p1_username: roomSnapshot.p1_username,
+                p1_status: roomSnapshot.p1_status,
+                p1_score: roomSnapshot.p1_score,
+                p2_username: roomSnapshot.p2_username,
+                p2_status: roomSnapshot.p2_status,
+                p2_score: roomSnapshot.p2_score,
+                playersConnected: roomSnapshot.playersConnected
             }
         )
 
-        if (sv.p1_status === "[connected]") {
-            $("#join-p1").attr("disabled", true);
-        }
-
-        if (sv.p2_status === "[connected]") {
-            $("#join-p2").attr("disabled", true);
-        }
-
-        $("#p1_status").text(gameState.p1_username + " " + gameState.p1_status);
-        $("#p2_status").text(gameState.p2_username + " " + gameState.p2_status);
-    })   
+        $("#p1_status").text(roomSnapshot.p1_username + " " + roomSnapshot.p1_status);
+        $("#p2_status").text(roomSnapshot.p2_username + " " + roomSnapshot.p2_status);
+    })
 }
 
 function ConfigureButtons() {
@@ -156,20 +133,25 @@ function ConfigureButtons() {
         }
         else {
 
-            if (playersConnected < 2) {
-                switch (playersConnected) {
+            database.ref("Room 1").once("value").then(function (snapshot) {
+
+            let roomSnapshot = snapshot.val();
+
+            if (roomSnapshot.playersConnected < 2) {
+                switch (roomSnapshot.playersConnected) {
                     case 0:
                         $("#p1").attr("value", "[connected]");
                         $("#p1").attr("name", thisPlayer);
 
                         database.ref("Room 1").set({
-                            p1_status: $("#p1").attr("value"),
+                            p1_status: "[connected]",
                             p1_username: thisPlayer,
                             p1_score: 0,
-                            p2_status: gameState.p2_status,
-                            p2_username: gameState.p2_username,
-                            p2_score: gameState.p2_score
-                        })
+                            p2_status: "[not connected]",
+                            p2_username: "",
+                            p2_score: 0,
+                            playersConnected: 1
+                        });
 
                         sessionStorage.setItem("player", thisPlayer)
 
@@ -178,22 +160,24 @@ function ConfigureButtons() {
                         $("#p2").attr("value", "[connected]");
                         $("#p2").attr("name", thisPlayer);
 
-                        database.ref("Room 1").set({
-                            p1_status: gameState.p1_status,
-                            p1_username: gameState.p1_username,
-                            p1_score: gameState.p1_score,
-                            p2_status: $("#p2").attr("value"),
-                            p2_username: thisPlayer,
-                            p2_score: 0,
-                        })
+                            database.ref("Room 1").set({
+                                p1_status: roomSnapshot.p1_status,
+                                p1_username: roomSnapshot.p1_username,
+                                p1_score: roomSnapshot.p1_score,
+                                p2_status: $("#p2").attr("value"),
+                                p2_username: thisPlayer,
+                                p2_score: 0,
+                                playersConnected: 2
+                            });
 
                         sessionStorage.setItem("player", thisPlayer);
 
                         break;
                 }
             }
-            else {}
-            
+            else { }
+        });
+
             $(this).attr("disabled", true);
         }
 
@@ -204,7 +188,7 @@ function ConfigureButtons() {
         $("#join").attr("disabled", false);
     })
 
-    $("#reset").click(function() {
+    $("#reset").click(function () {
         ResetFirebase();
     })
 
@@ -218,17 +202,6 @@ function ResetSoloGame() {
 
     game_msg = "Make Your Move!";
     UpdateScore();
-}
-
-function UpdateGameState(sv) {
-
-    gameState.p1_username = sv.p1_username;
-    gameState.p1_status = sv.p1_status;
-    gameState.p1_score = sv.p1_score;
-    gameState.p2_username = sv.p2_username;
-    gameState.p2_status = sv.p2_status;
-    gameState.p2_score = sv.p2_score;
-
 }
 
 function UpdateScore() {
@@ -319,73 +292,75 @@ function EvaluateRound(pChoice) {
 
 }
 
-function OnlinePlay() {
-
-
-}
-
 function ResetFirebase() {
 
-    database.ref("Room 1/").set({
+    database.ref("Room 1").set({
         p1_username: "",
         p1_status: "[not connected]",
         p1_score: 0,
         p2_username: "",
         p2_status: "[not connected]",
         p2_score: 0,
-        playersConnected: playersConnected
+        playersConnected: 0
     })
 
 }
 
-function ClearSessionStorage()
-{
+function ClearSessionStorage() {
     sessionStorage.clear();
 }
 
-function UpdatePlayerConnections()
-{
+function UpdatePlayerConnections() {
 
     thisPlayer = sessionStorage.getItem("player");
 
     database.ref("Room 1").once("value").then(function (snapshot) {
-        UpdateGameState(snapshot.val());
-    })
 
-    if (thisPlayer !== "") {
+        let roomSnapshot = snapshot.val();
 
-        switch (thisPlayer) {
-            case gameState.p1_username:
-                $("#p1").attr("value", "[not connected]");
-                $("#p1").attr("name", "");
+        if (thisPlayer !== "") {
 
-                database.ref("Room 1").set({
-                    p1_status: $("#p1").attr("value"),
-                    p1_username: $("#p1").attr("name"),
-                    p1_score: 0,
-                    p2_status: gameState.p2_status,
-                    p2_username: gameState.p2_username,
-                    p2_score: gameState.p2_score
-                })
-                break;
-            case gameState.p2_username:
-                $("#p2").attr("value", "[not connected]");
-                $("#p2").attr("name", "");
+            switch (thisPlayer) {
+                case roomSnapshot.p1_username:
+                    $("#p1").attr("value", roomSnapshot.p2_status);
+                    $("#p1").attr("name", roomSnapshot.p2_username);
+                    $("#p2").attr("value", "[not connected]");
+                    $("#p2").attr("name", "");
 
-                database.ref("Room 1").set({
-                    p1_status: gameState.p1_status,
-                    p1_username: gameState.p1_username,
-                    p1_score: gameState.p1_score,
-                    p2_status: $("#p2").attr("value"),
-                    p2_username: $("#p2").attr("name"),
-                    p2_score: 0,
-                })
-                break;
+                    let remainingPlayers = 1;
+
+                    if (roomSnapshot.playersConnected === 1)
+                        remainingPlayers = 0;
+
+                    database.ref("Room 1").set({
+                        p1_status: $("#p1").attr("value"),
+                        p1_username: $("#p1").attr("name"),
+                        p1_score: roomSnapshot.p2_score,
+                        p2_status: $("#p2").attr("value"),
+                        p2_username: $("#p2").attr("name"),
+                        p2_score: 0,
+                        playersConnected: remainingPlayers
+                    })
+                    break;
+                case roomSnapshot.p2_username:
+                    $("#p2").attr("value", "[not connected]");
+                    $("#p2").attr("name", "");
+
+                    database.ref("Room 1").set({
+                        p1_status: roomSnapshot.p1_status,
+                        p1_username: roomSnapshot.p1_username,
+                        p1_score: roomSnapshot.p1_score,
+                        p2_status: $("#p2").attr("value"),
+                        p2_username: $("#p2").attr("name"),
+                        p2_score: 0,
+                        playersConnected: 1
+                    })
+                    break;
+            }
+            sessionStorage.removeItem("player");
+            thisPlayer = "";
         }
-
-        sessionStorage.removeItem("player");
-
-    }
+    })
 }
 
 function UpdateOnlineMSGS() {
