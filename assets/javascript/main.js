@@ -27,9 +27,7 @@ let connectedCount = 0;
 let p1_wins = 0;
 let p2_wins = 0;
 let mode;
-let onlineMSGS = [];
 let thisPlayer;
-let playersConnected;
 
 $(document).ready(function () {
 
@@ -103,7 +101,6 @@ function ConfigureButtons() {
     $("#mode-online").click(function () {
         mode = "online";
         SwitchPage("online-entry");
-        OnlinePlay();
     })
 
     $(".home").click(function () {
@@ -361,10 +358,6 @@ function UpdatePlayerConnections() {
             thisPlayer = "";
         }
     })
-}
-
-function UpdateOnlineMSGS() {
-    $("#online-text").val(onlineMSGS.join("\n"));
 }
 
 function SwitchPage(page) {
