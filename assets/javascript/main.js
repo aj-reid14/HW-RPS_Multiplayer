@@ -41,55 +41,6 @@ $(document).ready(function () {
 
 })
 
-function ConfigureFirebase() {
-
-    connectionsRef.on("value", function (snapshot) {
-
-        connectedCount = snapshot.numChildren();
-        $("#connected-count").text(connectedCount);
-    })
-
-    connectedRef.on("value", function (snapshot) {
-        if (snapshot.val()) {
-
-            let con = connectionsRef.push(true);
-            con.onDisconnect().remove();
-
-            database.ref("Room 1").once("value").then(function (roomSnapshot) {
-                UpdatePlayerConnections();
-            })
-
-        }
-    })
-
-    database.ref("Room 1").on("value", function (snapshot) {
-        let roomSnapshot = snapshot.val();
-
-        if (mode === "online") {
-            if (roomSnapshot.playersConnected === 2) {
-                SwitchPage("online");
-            }
-            else {
-                SwitchPage("online-entry");
-            }
-        }
-
-        database.ref("Room 1").set(
-            {
-                p1_username: roomSnapshot.p1_username,
-                p1_status: roomSnapshot.p1_status,
-                p1_score: roomSnapshot.p1_score,
-                p2_username: roomSnapshot.p2_username,
-                p2_status: roomSnapshot.p2_status,
-                p2_score: roomSnapshot.p2_score,
-                playersConnected: roomSnapshot.playersConnected
-            }
-        )
-
-        $("#p1_status").text(roomSnapshot.p1_username + " " + roomSnapshot.p1_status);
-        $("#p2_status").text(roomSnapshot.p2_username + " " + roomSnapshot.p2_status);
-    })
-}
 
 function ConfigureButtons() {
     $("#mode-solo").click(function () {
@@ -103,15 +54,15 @@ function ConfigureButtons() {
         SwitchPage("online-entry");
     })
 
-    $(".home").click(function () {
-        SwitchPage("home");
-    })
-
     $(document.body).on("click", ".play-btn", function () {
         if (gameActive) {
-            if (mode === "solo") {
-                let playerChoice = $(this).val();
-                EvaluateRound(playerChoice);
+            switch (mode) {
+                case "solo":
+                    let playerChoice = $(this).val();
+                    EvaluateRound(playerChoice);
+                    break;
+                case "online":
+                    break;
             }
         }
     })
@@ -141,11 +92,13 @@ function ConfigureButtons() {
                         $("#p1").attr("name", thisPlayer);
 
                         database.ref("Room 1").set({
-                            p1_status: "[connected]",
                             p1_username: thisPlayer,
+                            p1_status: "[connected]",
+                            p1_move: "",
                             p1_score: 0,
-                            p2_status: "[not connected]",
                             p2_username: "",
+                            p2_status: "[not connected]",
+                            p2_move: "",
                             p2_score: 0,
                             playersConnected: 1
                         });
@@ -158,11 +111,13 @@ function ConfigureButtons() {
                         $("#p2").attr("name", thisPlayer);
 
                             database.ref("Room 1").set({
-                                p1_status: roomSnapshot.p1_status,
                                 p1_username: roomSnapshot.p1_username,
+                                p1_status: roomSnapshot.p1_status,
+                                p1_move: roomSnapshot.p1_move,
                                 p1_score: roomSnapshot.p1_score,
-                                p2_status: $("#p2").attr("value"),
                                 p2_username: thisPlayer,
+                                p2_status: $("#p2").attr("value"),
+                                p2_move: "",
                                 p2_score: 0,
                                 playersConnected: 2
                             });
@@ -176,13 +131,24 @@ function ConfigureButtons() {
         });
 
             $(this).attr("disabled", true);
+            $("#input-username").attr("disabled", true);
         }
 
     })
 
-    $("#leave").click(function () {
-        UpdatePlayerConnections();
-        $("#join").attr("disabled", false);
+    $(".leave").click(function () {
+
+        switch (mode) {
+            case "solo":
+                SwitchPage("home");
+                break;
+            case "online":
+                UpdatePlayerConnections();
+                $("#join").attr("disabled", false);
+                $("#input-username").attr("disabled", false);
+                $("#input-username").val("");
+                break;
+        }
     })
 
     $("#reset").click(function () {
@@ -191,36 +157,72 @@ function ConfigureButtons() {
 
 }
 
-function ResetSoloGame() {
-    gameActive = true;
-    cpuChoice = choices[Math.floor(Math.random() * 3)];
+function ConfigureFirebase() {
 
-    console.log("CPU: " + cpuChoice);
+    connectionsRef.on("value", function (snapshot) {
 
-    game_msg = "Make Your Move!";
-    UpdateScore();
+        connectedCount = snapshot.numChildren();
+        $("#connected-count").text(connectedCount);
+    })
+
+    connectedRef.on("value", function (snapshot) {
+        if (snapshot.val()) {
+
+            let con = connectionsRef.push(true);
+            con.onDisconnect().remove();
+
+            database.ref("Room 1").once("value").then(function (roomSnapshot) {
+                UpdatePlayerConnections();
+            })
+
+        }
+    })
+
+    database.ref("Room 1").on("value", function (snapshot) {
+        let roomSnapshot = snapshot.val();
+
+        if (mode === "online") {
+            if (roomSnapshot.playersConnected === 2) {
+                StartOnlineMatch();
+            }
+            else {
+                SwitchPage("online-entry");
+            }
+        }
+
+        database.ref("Room 1").set(
+            {
+                p1_username: roomSnapshot.p1_username,
+                p1_status: roomSnapshot.p1_status,
+                p1_move: roomSnapshot.p1_move,
+                p1_score: roomSnapshot.p1_score,
+                p2_username: roomSnapshot.p2_username,
+                p2_status: roomSnapshot.p2_status,
+                p2_move: roomSnapshot.p2_move,
+                p2_score: roomSnapshot.p2_score,
+                playersConnected: roomSnapshot.playersConnected
+            }
+        )
+
+        $("#p1_status").text(roomSnapshot.p1_username + " " + roomSnapshot.p1_status);
+        $("#p2_status").text(roomSnapshot.p2_username + " " + roomSnapshot.p2_status);
+    })
 }
 
-function UpdateScore() {
+function ResetFirebase() {
 
-    switch (mode) {
-        case "solo":
-            $("#game-msg").text(game_msg);
-            $("#win").text(wins);
-            $("#loss").text(losses);
-            $("#draw").text(draws);
-            break;
+    database.ref("Room 1").set({
+        p1_username: "",
+        p1_status: "[not connected]",
+        p1_move: "",
+        p1_score: 0,
+        p2_username: "",
+        p2_status: "[not connected]",
+        p2_move: "",
+        p2_score: 0,
+        playersConnected: 0
+    })
 
-        case "online":
-            $("#game-msg").text(game_msg);
-            $("#win").text(p1_wins);
-            $("#loss").text(p2_wins);
-            $("#draw").text("N/A");
-            break;
-
-        default:
-            break;
-    }
 }
 
 function EvaluateRound(pChoice) {
@@ -289,22 +291,44 @@ function EvaluateRound(pChoice) {
 
 }
 
-function ResetFirebase() {
+function ResetSoloGame() {
+    gameActive = true;
+    cpuChoice = choices[Math.floor(Math.random() * 3)];
 
-    database.ref("Room 1").set({
-        p1_username: "",
-        p1_status: "[not connected]",
-        p1_score: 0,
-        p2_username: "",
-        p2_status: "[not connected]",
-        p2_score: 0,
-        playersConnected: 0
-    })
+    console.log("CPU: " + cpuChoice);
 
+    game_msg = "Make Your Move!";
+    UpdateScore();
 }
 
 function ClearSessionStorage() {
     sessionStorage.clear();
+}
+
+function UpdateScore() {
+
+    switch (mode) {
+        case "solo":
+            $("#game-msg").text(game_msg);
+            $("#win").text(wins);
+            $("#loss").text(losses);
+            $("#draw").text(draws);
+            break;
+
+        case "online":
+            $("#game-msg").text(game_msg);
+            $("#win").text(p1_wins);
+            $("#loss").text(p2_wins);
+            $("#draw").text("N/A");
+            break;
+
+        default:
+            break;
+    }
+}
+
+function StartOnlineMatch() {
+    SwitchPage("online");
 }
 
 function UpdatePlayerConnections() {
@@ -330,11 +354,13 @@ function UpdatePlayerConnections() {
                         remainingPlayers = 0;
 
                     database.ref("Room 1").set({
-                        p1_status: $("#p1").attr("value"),
-                        p1_username: $("#p1").attr("name"),
+                        p1_username: roomSnapshot.p2_username,
+                        p1_status: roomSnapshot.p2_status,
+                        p1_move: roomSnapshot.p2_move,
                         p1_score: roomSnapshot.p2_score,
-                        p2_status: $("#p2").attr("value"),
-                        p2_username: $("#p2").attr("name"),
+                        p2_username: "",
+                        p2_status: "[not connected]",
+                        p2_move: "",
                         p2_score: 0,
                         playersConnected: remainingPlayers
                     })
@@ -344,11 +370,13 @@ function UpdatePlayerConnections() {
                     $("#p2").attr("name", "");
 
                     database.ref("Room 1").set({
-                        p1_status: roomSnapshot.p1_status,
                         p1_username: roomSnapshot.p1_username,
+                        p1_status: roomSnapshot.p1_status,
+                        p1_move: roomSnapshot.p1_move,
                         p1_score: roomSnapshot.p1_score,
-                        p2_status: $("#p2").attr("value"),
-                        p2_username: $("#p2").attr("name"),
+                        p2_username: "",
+                        p2_status: "[not connected]",
+                        p2_move: "",
                         p2_score: 0,
                         playersConnected: 1
                     })
@@ -356,6 +384,7 @@ function UpdatePlayerConnections() {
             }
             sessionStorage.removeItem("player");
             thisPlayer = "";
+            SwitchPage("home");
         }
     })
 }
