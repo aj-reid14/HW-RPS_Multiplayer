@@ -12,6 +12,7 @@ firebase.initializeApp(firebaseConfig);
 let database = firebase.database();
 let connectionsRef = database.ref("/connections");
 let connectedRef = database.ref(".info/connected");
+let room1Ref = database.ref("Room 1");
 
 let gameActive = false;
 let choices = ["rock", "paper", "scissors"];
@@ -20,9 +21,6 @@ let game_msg;
 let wins = 0;
 let losses = 0;
 let draws = 0;
-
-let playerCount = 0;
-let connectedCount = 0;
 
 let mode;
 let thisPlayer;
@@ -60,6 +58,7 @@ function ConfigureButtons() {
                     EvaluateRound(playerChoice);
                     break;
                 case "online":
+                    UpdateOnlineMatch($(this).val());
                     break;
             }
         }
@@ -79,14 +78,14 @@ function ConfigureButtons() {
         }
         else {
 
-            database.ref("Room 1").once("value").then(function (snapshot) {
+            room1Ref.once("value").then(function (snapshot) {
 
             let roomSnapshot = snapshot.val();
 
             if (roomSnapshot.playersConnected < 2) {
                 switch (roomSnapshot.playersConnected) {
                     case 0:
-                        database.ref("Room 1").set({
+                        room1Ref.set({
                             p1: {
                                 username: thisPlayer,
                                 status: "[connected]",
@@ -105,7 +104,7 @@ function ConfigureButtons() {
 
                         break;
                     case 1:
-                            database.ref("Room 1").set({
+                            room1Ref.set({
                                 p1: {
                                     username: roomSnapshot.p1.username,
                                     status: roomSnapshot.p1.status,
@@ -158,38 +157,37 @@ function ConfigureButtons() {
 
 function ConfigureFirebase() {
 
-    connectionsRef.on("value", function (snapshot) {
-
-        connectedCount = snapshot.numChildren();
-        $("#connected-count").text(connectedCount);
-    })
-
     connectedRef.on("value", function (snapshot) {
         if (snapshot.val()) {
 
             let con = connectionsRef.push(true);
             con.onDisconnect().remove();
 
-            database.ref("Room 1").once("value").then(function (roomSnapshot) {
+            room1Ref.once("value").then(function (roomSnapshot) {
                 UpdatePlayerConnections();
             })
 
         }
     })
 
-    database.ref("Room 1").on("value", function (snapshot) {
-        let roomSnapshot = snapshot.val();
+    database.ref("Room 1/playersConnected").on("value", function(snapshot)
+    {
+        let playersConnected = snapshot.val();
 
         if (mode === "online") {
-            if (roomSnapshot.playersConnected === 2) {
+            if (playersConnected === 2) {
                 StartOnlineMatch();
             }
             else {
                 SwitchPage("online-entry");
             }
         }
+    })
 
-        database.ref("Room 1").set(
+    room1Ref.on("value", function (snapshot) {
+        let roomSnapshot = snapshot.val();
+
+        room1Ref.set(
             {
                 p1: {
                     username: roomSnapshot.p1.username,
@@ -214,7 +212,7 @@ function ConfigureFirebase() {
 
 function ResetFirebase() {
 
-    database.ref("Room 1").set({
+    room1Ref.set({
         p1: {
             username: "",
             status: "[not connected]",
@@ -335,14 +333,62 @@ function UpdateScore() {
 }
 
 function StartOnlineMatch() {
+    gameActive = true;
     SwitchPage("online");
+}
+
+function UpdateOnlineMatch(playerMove) {
+
+    thisPlayer = sessionStorage.getItem("player");
+
+    room1Ref.once("value", function (snapshot) {
+        let roomSnapshot = snapshot.val();
+
+        switch (thisPlayer) {
+            case roomSnapshot.p1.username:
+                room1Ref.set({
+                    p1: {
+                        username: roomSnapshot.p1.username,
+                        status: roomSnapshot.p1.status,
+                        move: playerMove,
+                        score: roomSnapshot.p1.score
+                    },
+                    p2: {
+                        username: roomSnapshot.p2.username,
+                        status: roomSnapshot.p2.status,
+                        move: roomSnapshot.p2.move,
+                        score: roomSnapshot.p2.score
+                    },
+                    playersConnected: roomSnapshot.playersConnected
+                });
+                break;
+            case roomSnapshot.p2.username:
+                    room1Ref.set({
+                        p1: {
+                            username: roomSnapshot.p1.username,
+                            status: roomSnapshot.p1.status,
+                            move: roomSnapshot.p1.move,
+                            score: roomSnapshot.p1.score
+                        },
+                        p2: {
+                            username: roomSnapshot.p2.username,
+                            status: roomSnapshot.p2.status,
+                            move: playerMove,
+                            score: roomSnapshot.p2.score
+                        },
+                        playersConnected: roomSnapshot.playersConnected
+                    });
+                break;
+        }
+    })
+
 }
 
 function UpdatePlayerConnections() {
 
     thisPlayer = sessionStorage.getItem("player");
 
-    database.ref("Room 1").once("value").then(function (snapshot) {
+    room1Ref.once("value").then(function (snapshot) {
 
         let roomSnapshot = snapshot.val();
 
@@ -350,17 +396,12 @@ function UpdatePlayerConnections() {
 
             switch (thisPlayer) {
                 case roomSnapshot.p1.username:
-                    $("#p1").attr("value", roomSnapshot.p2.status);
-                    $("#p1").attr("name", roomSnapshot.p2.username);
-                    $("#p2").attr("value", "[not connected]");
-                    $("#p2").attr("name", "");
-
                     let remainingPlayers = 1;
 
                     if (roomSnapshot.playersConnected === 1)
                         remainingPlayers = 0;
 
-                    database.ref("Room 1").set({
+                    room1Ref.set({
                         p1: {
                             username: roomSnapshot.p2.username,
                             status: roomSnapshot.p2.status,
@@ -377,10 +418,7 @@ function UpdatePlayerConnections() {
                     })
                     break;
                 case roomSnapshot.p2.username:
-                    $("#p2").attr("value", "[not connected]");
-                    $("#p2").attr("name", "");
-
-                    database.ref("Room 1").set({
+                    room1Ref.set({
                         p1: {
                             username: roomSnapshot.p1.username,
                             status: roomSnapshot.p1.status,
