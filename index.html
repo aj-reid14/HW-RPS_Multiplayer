@@ -39,14 +39,27 @@
             <button id="join" class="mp-btn">Join</button>
             <button id="start" class="mp-btn">Start</button>
             <button class="rps-btn leave">Leave</button>
-            <p id="p1">Player 1: <span id="p1_status"></span></p>
-            <p id="p2">Player 2: <span id="p2_status"></span></p>
+            <p>Player 1: <span id="p1_status"></span></p>
+            <p>Player 2: <span id="p2_status"></span></p>
 
             <div id="content-online" class="col-lg-12 rps">
                 <!-- <textarea id="online-text" readonly cols="30" rows="10"></textarea> -->
                 <button value="rock" class="play-btn">Rock</button>
                 <button value="paper" class="play-btn">Paper</button>
                 <button value="scissors" class="play-btn">Scissors</button>
+
+                <div id="content-online-gameinfo" class="col-lg-12 rps">
+                    <h4 id="p1">
+                        <span id="p1-username"></span> | 
+                        <span id="p1-score"></span>
+                    </h4>
+                    <h4 id="p2">
+                        <span id="p2-username"></span> | 
+                        <span id="p2-score"></span>
+                    </h4>
+                    <h4><span class="game-msg"></span></h4>
+                </div>
+
             </div>
 
         </div>
@@ -63,7 +76,7 @@
             <button id="rematch-btn" class="rps-btn">Rematch</button>
             <button class="rps-btn leave">Leave</button>
     
-            <h4><span id="game-msg"></span></h4>
+            <h4><span class="game-msg"></span></h4>
     
         </div>
     

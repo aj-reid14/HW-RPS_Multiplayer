@@ -13,6 +13,7 @@ let database = firebase.database();
 let connectionsRef = database.ref("/connections");
 let connectedRef = database.ref(".info/connected");
 let room1Ref = database.ref("Room 1");
+let room1Ref_players = database.ref("Room 1/players");
 
 let gameActive = false;
 let choices = ["rock", "paper", "scissors"];
@@ -24,6 +25,8 @@ let draws = 0;
 
 let mode;
 let thisPlayer;
+let p1Move = "";
+let p2Move = "";
 
 $(document).ready(function () {
 
@@ -37,11 +40,11 @@ $(document).ready(function () {
 
 })
 
-
 function ConfigureButtons() {
     $("#mode-solo").click(function () {
         mode = "solo";
         SwitchPage("solo");
+        gameActive = true;
         ResetSoloGame();
     })
 
@@ -58,6 +61,7 @@ function ConfigureButtons() {
                     EvaluateRound(playerChoice);
                     break;
                 case "online":
+                    $(this).css("border-color", "green")
                     UpdateOnlineMatch($(this).val());
                     break;
             }
@@ -65,7 +69,16 @@ function ConfigureButtons() {
     })
 
     $("#rematch-btn").click(function () {
-        ResetSoloGame();
+
+        switch (mode) {
+            case "solo":
+                gameActive = true;
+                ResetSoloGame();
+                break;
+
+            case "online":
+                break;
+        }
     })
 
     $("#join").click(function () {
@@ -82,42 +95,53 @@ function ConfigureButtons() {
 
             let roomSnapshot = snapshot.val();
 
-            if (roomSnapshot.playersConnected < 2) {
-                switch (roomSnapshot.playersConnected) {
+            if (roomSnapshot.gameInfo.playersConnected < 2) {
+                switch (roomSnapshot.gameInfo.playersConnected) {
                     case 0:
                         room1Ref.set({
-                            p1: {
-                                username: thisPlayer,
-                                status: "[connected]",
-                                move: "",
-                                score: 0 },
-                            p2 : {
-                                username: "",
-                                status: "[not connected]",
-                                move: "",
-                                score: 0
+                            players: {
+                                p1: {
+                                    username: thisPlayer,
+                                    status: "[connected]",
+                                    move: "",
+                                    score: 0
+                                },
+                                p2: {
+                                    username: "",
+                                    status: "[not connected]",
+                                    move: "",
+                                    score: 0
+                                }
                             },
-                            playersConnected: 1
+                            gameInfo: {
+                            playersConnected: 1,
+                            gameMessage: ""
+                            }
                         });
 
                         sessionStorage.setItem("player", thisPlayer)
 
                         break;
-                    case 1:
+                    case 1:                        
                             room1Ref.set({
+                                players: {
                                 p1: {
-                                    username: roomSnapshot.p1.username,
-                                    status: roomSnapshot.p1.status,
-                                    move: roomSnapshot.p1.move,
-                                    score: roomSnapshot.p1.score
+                                    username: roomSnapshot.players.p1.username,
+                                    status: roomSnapshot.players.p1.status,
+                                    move: roomSnapshot.players.p1.move,
+                                    score: roomSnapshot.players.p1.score
                                 },
                                 p2: {
                                     username: thisPlayer,
                                     status: "[connected]",
                                     move: "",
                                     score: 0
-                                },
-                                playersConnected: 2
+                                }
+                            },
+                            gameInfo: {
+                                playersConnected: 2,
+                                gameMessage: "Make Your Moves!"
+                            }
                             });
 
                         sessionStorage.setItem("player", thisPlayer);
@@ -138,7 +162,11 @@ function ConfigureButtons() {
 
         switch (mode) {
             case "solo":
+                wins = 0;
+                losses = 0;
+                draws = 0;
                 SwitchPage("home");
+                $(".game-msg").text("");
                 break;
             case "online":
                 UpdatePlayerConnections();
@@ -170,134 +198,239 @@ function ConfigureFirebase() {
         }
     })
 
-    database.ref("Room 1/playersConnected").on("value", function(snapshot)
+    database.ref("Room 1/gameInfo/playersConnected").on("value", function(snapshot)
     {
         let playersConnected = snapshot.val();
 
         if (mode === "online") {
             if (playersConnected === 2) {
+                gameActive = true;
                 StartOnlineMatch();
             }
             else {
+                gameActive = false;
                 SwitchPage("online-entry");
             }
         }
     })
 
+    database.ref("Room 1/gameInfo/gameMessage").on("value", function(snapshot) {
+        $(".game-msg").text(snapshot.val());
+    })
+
     room1Ref.on("value", function (snapshot) {
         let roomSnapshot = snapshot.val();
 
-        room1Ref.set(
-            {
+        room1Ref.set({
+            players: {
                 p1: {
-                    username: roomSnapshot.p1.username,
-                    status: roomSnapshot.p1.status,
-                    move: roomSnapshot.p1.move,
-                    score: roomSnapshot.p1.score
+                    username: roomSnapshot.players.p1.username,
+                    status: roomSnapshot.players.p1.status,
+                    move: roomSnapshot.players.p1.move,
+                    score: roomSnapshot.players.p1.score
                 },
                 p2: {
-                    username: roomSnapshot.p2.username,
-                    status: roomSnapshot.p2.status,
-                    move: roomSnapshot.p2.move,
-                    score: roomSnapshot.p2.score,
-                },
-                playersConnected: roomSnapshot.playersConnected
+                    username: roomSnapshot.players.p2.username,
+                    status: roomSnapshot.players.p2.status,
+                    move: roomSnapshot.players.p2.move,
+                    score: roomSnapshot.players.p2.score,
+                }
+            },
+            gameInfo: {
+                playersConnected: roomSnapshot.gameInfo.playersConnected,
+                gameMessage: roomSnapshot.gameInfo.gameMessage
             }
-        )
+        })
 
-        $("#p1_status").text(roomSnapshot.p1.username + " " + roomSnapshot.p1.status);
-        $("#p2_status").text(roomSnapshot.p2.username + " " + roomSnapshot.p2.status);
+        if (roomSnapshot.players.p1.move)
+            $("#p1-username").css("color", "green");
+        else
+            $("#p1-username").css("color", "black");
+
+        if (roomSnapshot.players.p2.move)
+            $("#p2-username").css("color", "green");
+        else
+            $("#p2-username").css("color", "black");
+
+        $("#p1_status").text(roomSnapshot.players.p1.username + " " + roomSnapshot.players.p1.status);
+        $("#p2_status").text(roomSnapshot.players.p2.username + " " + roomSnapshot.players.p2.status);
+        $("#p1-score").text(roomSnapshot.players.p1.score);
+        $("#p2-score").text(roomSnapshot.players.p2.score);
     })
 }
 
 function ResetFirebase() {
 
     room1Ref.set({
-        p1: {
-            username: "",
-            status: "[not connected]",
-            move: "",
-            score: 0,
+        players: {
+            p1: {
+                username: "",
+                status: "[not connected]",
+                move: "",
+                score: 0,
+            },
+            p2: {
+                username: "",
+                status: "[not connected]",
+                move: "",
+                score: 0,
+            }
         },
-        p2: {
-            username: "",
-            status: "[not connected]",
-            move: "",
-            score: 0,
-        },
-        playersConnected: 0
+        gameInfo: {
+            playersConnected: 0,
+            gameMessage: ""
+        }
     })
 
 }
 
-function EvaluateRound(pChoice) {
-    //   Returns true if "pChoice" wins against "cpuChoice"
-    //   Returns false if "cpuChoice" wins against "pChoice"
+function EvaluateRound(p1_move, p2_move) {
 
-    console.log("PLAYER: " + pChoice);
+    if (mode === "solo") {
+        p2_move = cpuChoice;
+        console.log("PLAYER: " + p1_move);
 
-    let result;
+        switch (p1_move) {
+            case "rock":
+                switch (p2_move) {
+                    case "rock":
+                        draws++;
+                        game_msg = "Draw!";
+                        break;
+                    case "paper":
+                        losses++;
+                        game_msg = "You Lose!";
+                        break;
+                    case "scissors":
+                        wins++;
+                        game_msg = "You Win!";
+                        break;
+                }
+                break;
 
-    switch (pChoice) {
-        case "rock":
-            switch (cpuChoice) {
+            case "paper":
+                switch (p2_move) {
+                    case "rock":
+                        wins++;
+                        game_msg = "You Win!";
+                        break;
+                    case "paper":
+                        draws++;
+                        game_msg = "Draw!";
+                        break;
+                    case "scissors":
+                        losses++;
+                        game_msg = "You Lose!";
+                        break;
+                }
+                break;
+
+            case "scissors":
+                switch (p2_move) {
+                    case "rock":
+                        losses++;
+                        game_msg = "You Lose!";
+                        break;
+                    case "paper":
+                        wins++;
+                        game_msg = "You Win!";
+                        break;
+                    case "scissors":
+                        draws++;
+                        game_msg = "Draw!";
+                        break;
+                }
+                break;
+        }
+
+        UpdateScore();
+
+    }
+    else if (mode === "online") {
+
+        room1Ref.once("value", function (snapshot) {
+            let roomSnapshot = snapshot.val();
+
+            let p1_score = roomSnapshot.players.p1.score;
+            let p2_score = roomSnapshot.players.p2.score;
+            let roundResult = roomSnapshot.gameInfo.gameMessage;
+
+            switch (p1_move) {
                 case "rock":
-                    draws++;
-                    game_msg = "Draw!";
+                    switch (p2_move) {
+                        case "rock":
+                            roundResult = "Draw!";
+                            break;
+                        case "paper":
+                            p2_score++;
+                            roundResult = roomSnapshot.players.p2.username + " Wins!";
+                            break;
+                        case "scissors":
+                            p1_score++;
+                            roundResult = roomSnapshot.players.p1.username + " Wins!";
+                            break;
+                    }
                     break;
+
                 case "paper":
-                    losses++;
-                    game_msg = "You Lose!";
+                    switch (p2_move) {
+                        case "rock":
+                            p1_score++;
+                            roundResult = roomSnapshot.players.p1.username + " Wins!";
+                            break;
+                        case "paper":
+                            roundResult = "Draw!";
+                            break;
+                        case "scissors":
+                            p2_score++;
+                            roundResult = roomSnapshot.players.p2.username + " Wins!";
+                            break;
+                    }
                     break;
+
                 case "scissors":
-                    wins++;
-                    game_msg = "You Win!";
+                    switch (p2_move) {
+                        case "rock":
+                            p2_score++;
+                            roundResult = roomSnapshot.players.p2.username + " Wins!";
+                            break;
+                        case "paper":
+                            p1_score++;
+                            roundResult = roomSnapshot.players.p1.username + " Wins!";
+                            break;
+                        case "scissors":
+                            roundResult = "Draw!";
+                            break;
+                    }
                     break;
             }
-            break;
 
-        case "paper":
-            switch (cpuChoice) {
-                case "rock":
-                    wins++;
-                    game_msg = "You Win!";
-                    break;
-                case "paper":
-                    draws++;
-                    game_msg = "Draw!";
-                    break;
-                case "scissors":
-                    losses++;
-                    game_msg = "You Lose!";
-                    break;
-            }
-            break;
+            room1Ref.set({
+                p1: {
+                    username: roomSnapshot.players.p1.username,
+                    status: roomSnapshot.players.p1.status,
+                    move: p1_move,
+                    score: p1_score
+                },
+                p2: {
+                    username: roomSnapshot.players.p2.username,
+                    status: roomSnapshot.players.p2.status,
+                    move: p2_move,
+                    score: p2_score
+                },
+                playersConnected: roomSnapshot.gameInfo.playersConnected,
+                gameMessage: roundResult
+            })
 
-        case "scissors":
-            switch (cpuChoice) {
-                case "rock":
-                    losses++;
-                    game_msg = "You Lose!";
-                    break;
-                case "paper":
-                    wins++;
-                    game_msg = "You Win!";
-                    break;
-                case "scissors":
-                    draw++;
-                    game_msg = "Draw!";
-                    break;
-            }
-            break;
+        })
+
     }
 
-    UpdateScore();
     gameActive = false;
 
 }
 
 function ResetSoloGame() {
-    gameActive = true;
     cpuChoice = choices[Math.floor(Math.random() * 3)];
 
     console.log("CPU: " + cpuChoice);
@@ -314,26 +447,25 @@ function UpdateScore() {
 
     switch (mode) {
         case "solo":
-            $("#game-msg").text(game_msg);
+            $(".game-msg").text(game_msg);
             $("#win").text(wins);
             $("#loss").text(losses);
             $("#draw").text(draws);
-            break;
-
-        case "online":
-            $("#game-msg").text(game_msg);
-            $("#win").text(wins);
-            $("#loss").text(wins);
-            $("#draw").text("N/A");
-            break;
-
-        default:
             break;
     }
 }
 
 function StartOnlineMatch() {
-    gameActive = true;
+
+    room1Ref.once("value", function(snapshot) {
+        let roomSnapshot = snapshot.val();
+
+        $("#p1-username").text(roomSnapshot.players.p1.username);
+        $("#p2-username").text(roomSnapshot.players.p2.username);
+        $("#p1-score").text(roomSnapshot.players.p1.score);
+        $("#p2-score").text(roomSnapshot.players.p2.score);
+    })
+
     SwitchPage("online");
 }
 
@@ -341,43 +473,27 @@ function UpdateOnlineMatch(playerMove) {
 
     thisPlayer = sessionStorage.getItem("player");
 
+    $(".play-btn").attr("disabled", true);
+
     room1Ref.once("value", function (snapshot) {
         let roomSnapshot = snapshot.val();
 
         switch (thisPlayer) {
-            case roomSnapshot.p1.username:
-                room1Ref.set({
-                    p1: {
-                        username: roomSnapshot.p1.username,
-                        status: roomSnapshot.p1.status,
-                        move: playerMove,
-                        score: roomSnapshot.p1.score
-                    },
-                    p2: {
-                        username: roomSnapshot.p2.username,
-                        status: roomSnapshot.p2.status,
-                        move: roomSnapshot.p2.move,
-                        score: roomSnapshot.p2.score
-                    },
-                    playersConnected: roomSnapshot.playersConnected
-                });
+            case roomSnapshot.players.p1.username:
+                p1Move = playerMove;
+                if (roomSnapshot.players.p2.move) {
+                    p2Move = roomSnapshot.players.p2.move;
+                    EvaluateRound(p1Move, p2Move);
+                }
+
                 break;
-            case roomSnapshot.p2.username:
-                    room1Ref.set({
-                        p1: {
-                            username: roomSnapshot.p1.username,
-                            status: roomSnapshot.p1.status,
-                            move: roomSnapshot.p1.move,
-                            score: roomSnapshot.p1.score
-                        },
-                        p2: {
-                            username: roomSnapshot.p2.username,
-                            status: roomSnapshot.p2.status,
-                            move: playerMove,
-                            score: roomSnapshot.p2.score
-                        },
-                        playersConnected: roomSnapshot.playersConnected
-                    });
+            case roomSnapshot.players.p2.username:
+                p2Move = playerMove;
+                if (roomSnapshot.players.p1.move) {
+                    p1Move = roomSnapshot.players.p1.move;
+                    EvaluateRound(p1Move, p2Move);
+                }
+
                 break;
         }
     })
@@ -395,43 +511,53 @@ function UpdatePlayerConnections() {
         if (thisPlayer !== "") {
 
             switch (thisPlayer) {
-                case roomSnapshot.p1.username:
+                case roomSnapshot.players.p1.username:
                     let remainingPlayers = 1;
 
-                    if (roomSnapshot.playersConnected === 1)
+                    if (roomSnapshot.gameInfo.playersConnected === 1)
                         remainingPlayers = 0;
 
                     room1Ref.set({
+                        players: {
                         p1: {
-                            username: roomSnapshot.p2.username,
-                            status: roomSnapshot.p2.status,
-                            move: roomSnapshot.p2.move,
-                            score: roomSnapshot.p2.score
+                            username: roomSnapshot.players.p2.username,
+                            status: roomSnapshot.players.p2.status,
+                            move: roomSnapshot.players.p2.move,
+                            score: roomSnapshot.players.p2.score
                         },
                         p2: {
                             username: "",
                             status: "[not connected]",
                             move: "",
                             score: 0,
-                        },
-                        playersConnected: remainingPlayers
+                        }
+                    },
+                    gameInfo: {
+                        playersConnected: remainingPlayers,
+                        gameMessage: ""
+                    }
                     })
                     break;
-                case roomSnapshot.p2.username:
+                case roomSnapshot.players.p2.username:
                     room1Ref.set({
+                        players: {
                         p1: {
-                            username: roomSnapshot.p1.username,
-                            status: roomSnapshot.p1.status,
-                            move: roomSnapshot.p1.move,
-                            score: roomSnapshot.p1.score
+                            username: roomSnapshot.players.p1.username,
+                            status: roomSnapshot.players.p1.status,
+                            move: roomSnapshot.players.p1.move,
+                            score: roomSnapshot.players.p1.score
                         },
                         p2: {
                             username: "",
                             status: "[not connected]",
                             move: "",
                             score: 0
-                        },
-                        playersConnected: 1
+                        }
+                    },
+                    gameInfo: {
+                        playersConnected: 1,
+                        gameMessage: ""
+                    }
                     })
                     break;
             }
