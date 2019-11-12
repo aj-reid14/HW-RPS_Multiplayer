@@ -14,6 +14,7 @@ let connectionsRef = database.ref("/connections");
 let connectedRef = database.ref(".info/connected");
 let room1Ref = database.ref("Room 1");
 let room1Ref_players = database.ref("Room 1/players");
+let room1Ref_gameInfo = database.ref("Room 1/gameInfo");
 
 let gameActive = false;
 let choices = ["rock", "paper", "scissors"];
@@ -198,13 +199,13 @@ function ConfigureFirebase() {
         }
     })
 
-    database.ref("Room 1/gameInfo/playersConnected").on("value", function(snapshot)
-    {
-        let playersConnected = snapshot.val();
+    room1Ref_gameInfo.on("value", function(snapshot) {
+        let roomInfo = snapshot.val();
+
+        $(".game-msg").text(roomInfo.gameMessage);
 
         if (mode === "online") {
-            if (playersConnected === 2) {
-                gameActive = true;
+            if (roomInfo.playersConnected === 2) {
                 StartOnlineMatch();
             }
             else {
@@ -214,48 +215,26 @@ function ConfigureFirebase() {
         }
     })
 
-    database.ref("Room 1/gameInfo/gameMessage").on("value", function(snapshot) {
-        $(".game-msg").text(snapshot.val());
-    })
-
-    room1Ref.on("value", function (snapshot) {
+    room1Ref_players.on("value", function (snapshot) {
         let roomSnapshot = snapshot.val();
 
-        room1Ref.set({
-            players: {
-                p1: {
-                    username: roomSnapshot.players.p1.username,
-                    status: roomSnapshot.players.p1.status,
-                    move: roomSnapshot.players.p1.move,
-                    score: roomSnapshot.players.p1.score
-                },
-                p2: {
-                    username: roomSnapshot.players.p2.username,
-                    status: roomSnapshot.players.p2.status,
-                    move: roomSnapshot.players.p2.move,
-                    score: roomSnapshot.players.p2.score,
-                }
-            },
-            gameInfo: {
-                playersConnected: roomSnapshot.gameInfo.playersConnected,
-                gameMessage: roomSnapshot.gameInfo.gameMessage
-            }
-        })
-
-        if (roomSnapshot.players.p1.move)
+        if (roomSnapshot.p1.move)
             $("#p1-username").css("color", "green");
         else
             $("#p1-username").css("color", "black");
 
-        if (roomSnapshot.players.p2.move)
+        if (roomSnapshot.p2.move)
             $("#p2-username").css("color", "green");
         else
             $("#p2-username").css("color", "black");
 
-        $("#p1_status").text(roomSnapshot.players.p1.username + " " + roomSnapshot.players.p1.status);
-        $("#p2_status").text(roomSnapshot.players.p2.username + " " + roomSnapshot.players.p2.status);
-        $("#p1-score").text(roomSnapshot.players.p1.score);
-        $("#p2-score").text(roomSnapshot.players.p2.score);
+        if (gameActive && roomSnapshot.p1.move && roomSnapshot.p2.move)
+            EvaluateRound(roomSnapshot.p1.move, roomSnapshot.p2.move);
+
+        $("#p1_status").text(roomSnapshot.p1.username + " " + roomSnapshot.p1.status);
+        $("#p2_status").text(roomSnapshot.p2.username + " " + roomSnapshot.p2.status);
+        $("#p1-score").text(roomSnapshot.p1.score);
+        $("#p2-score").text(roomSnapshot.p2.score);
     })
 }
 
@@ -279,6 +258,67 @@ function ResetFirebase() {
         gameInfo: {
             playersConnected: 0,
             gameMessage: ""
+        }
+    })
+
+}
+
+function ResetSoloGame() {
+    cpuChoice = choices[Math.floor(Math.random() * 3)];
+
+    console.log("CPU: " + cpuChoice);
+
+    game_msg = "Make Your Move!";
+    UpdateScore();
+}
+
+function ClearSessionStorage() {
+    sessionStorage.clear();
+}
+
+function UpdateScore() {
+
+    switch (mode) {
+        case "solo":
+            $(".game-msg").text(game_msg);
+            $("#win").text(wins);
+            $("#loss").text(losses);
+            $("#draw").text(draws);
+            break;
+    }
+}
+
+function StartOnlineMatch() {
+
+    gameActive = true;
+
+    room1Ref.once("value", function(snapshot) {
+        let roomSnapshot = snapshot.val();
+
+        $("#p1-username").text(roomSnapshot.players.p1.username);
+        $("#p2-username").text(roomSnapshot.players.p2.username);
+        $("#p1-score").text(roomSnapshot.players.p1.score);
+        $("#p2-score").text(roomSnapshot.players.p2.score);
+    })
+
+    SwitchPage("online");
+}
+
+function UpdateOnlineMatch(playerMove) {
+
+    thisPlayer = sessionStorage.getItem("player");
+    $(".play-btn").attr("disabled", true);
+
+    room1Ref_players.once("value", function (snapshot) {
+        let roomSnapshot = snapshot.val();
+
+        switch (thisPlayer) {
+            case roomSnapshot.p1.username:
+                database.ref("Room 1/players/p1/move").set(playerMove);
+                break;
+            case roomSnapshot.p2.username:
+                database.ref("Room 1/players/p2/move").set(playerMove);
+                break;
         }
     })
 
@@ -345,159 +385,78 @@ function EvaluateRound(p1_move, p2_move) {
 
         UpdateScore();
 
+        gameActive = false;
+
     }
     else if (mode === "online") {
 
-        room1Ref.once("value", function (snapshot) {
-            let roomSnapshot = snapshot.val();
+        if (gameActive) {
 
-            let p1_score = roomSnapshot.players.p1.score;
-            let p2_score = roomSnapshot.players.p2.score;
-            let roundResult = roomSnapshot.gameInfo.gameMessage;
+            room1Ref.once("value", function (snapshot) {
+                let roomSnapshot = snapshot.val();
 
-            switch (p1_move) {
-                case "rock":
-                    switch (p2_move) {
-                        case "rock":
-                            roundResult = "Draw!";
-                            break;
-                        case "paper":
-                            p2_score++;
-                            roundResult = roomSnapshot.players.p2.username + " Wins!";
-                            break;
-                        case "scissors":
-                            p1_score++;
-                            roundResult = roomSnapshot.players.p1.username + " Wins!";
-                            break;
-                    }
-                    break;
+                let p1_score = roomSnapshot.players.p1.score;
+                let p2_score = roomSnapshot.players.p2.score;
+                let roundResult = roomSnapshot.gameInfo.gameMessage;
 
-                case "paper":
-                    switch (p2_move) {
-                        case "rock":
-                            p1_score++;
-                            roundResult = roomSnapshot.players.p1.username + " Wins!";
-                            break;
-                        case "paper":
-                            roundResult = "Draw!";
-                            break;
-                        case "scissors":
-                            p2_score++;
-                            roundResult = roomSnapshot.players.p2.username + " Wins!";
-                            break;
-                    }
-                    break;
+                switch (p1_move) {
+                    case "rock":
+                        switch (p2_move) {
+                            case "rock":
+                                roundResult = "Draw!";
+                                break;
+                            case "paper":
+                                p2_score++;
+                                roundResult = roomSnapshot.players.p2.username + " Wins!";
+                                break;
+                            case "scissors":
+                                p1_score++;
+                                roundResult = roomSnapshot.players.p1.username + " Wins!";
+                                break;
+                        }
+                        break;
 
-                case "scissors":
-                    switch (p2_move) {
-                        case "rock":
-                            p2_score++;
-                            roundResult = roomSnapshot.players.p2.username + " Wins!";
-                            break;
-                        case "paper":
-                            p1_score++;
-                            roundResult = roomSnapshot.players.p1.username + " Wins!";
-                            break;
-                        case "scissors":
-                            roundResult = "Draw!";
-                            break;
-                    }
-                    break;
-            }
+                    case "paper":
+                        switch (p2_move) {
+                            case "rock":
+                                p1_score++;
+                                roundResult = roomSnapshot.players.p1.username + " Wins!";
+                                break;
+                            case "paper":
+                                roundResult = "Draw!";
+                                break;
+                            case "scissors":
+                                p2_score++;
+                                roundResult = roomSnapshot.players.p2.username + " Wins!";
+                                break;
+                        }
+                        break;
 
-            room1Ref.set({
-                p1: {
-                    username: roomSnapshot.players.p1.username,
-                    status: roomSnapshot.players.p1.status,
-                    move: p1_move,
-                    score: p1_score
-                },
-                p2: {
-                    username: roomSnapshot.players.p2.username,
-                    status: roomSnapshot.players.p2.status,
-                    move: p2_move,
-                    score: p2_score
-                },
-                playersConnected: roomSnapshot.gameInfo.playersConnected,
-                gameMessage: roundResult
+                    case "scissors":
+                        switch (p2_move) {
+                            case "rock":
+                                p2_score++;
+                                roundResult = roomSnapshot.players.p2.username + " Wins!";
+                                break;
+                            case "paper":
+                                p1_score++;
+                                roundResult = roomSnapshot.players.p1.username + " Wins!";
+                                break;
+                            case "scissors":
+                                roundResult = "Draw!";
+                                break;
+                        }
+                        break;
+                }
+
+                database.ref("Room 1/players/p1/score").set(p1_score);
+                database.ref("Room 1/players/p2/score").set(p2_score);
+                database.ref("Room 1/gameInfo/gameMessage").set(roundResult);
+
+                gameActive = false;
             })
-
-        })
-
-    }
-
-    gameActive = false;
-
-}
-
-function ResetSoloGame() {
-    cpuChoice = choices[Math.floor(Math.random() * 3)];
-
-    console.log("CPU: " + cpuChoice);
-
-    game_msg = "Make Your Move!";
-    UpdateScore();
-}
-
-function ClearSessionStorage() {
-    sessionStorage.clear();
-}
-
-function UpdateScore() {
-
-    switch (mode) {
-        case "solo":
-            $(".game-msg").text(game_msg);
-            $("#win").text(wins);
-            $("#loss").text(losses);
-            $("#draw").text(draws);
-            break;
-    }
-}
-
-function StartOnlineMatch() {
-
-    room1Ref.once("value", function(snapshot) {
-        let roomSnapshot = snapshot.val();
-
-        $("#p1-username").text(roomSnapshot.players.p1.username);
-        $("#p2-username").text(roomSnapshot.players.p2.username);
-        $("#p1-score").text(roomSnapshot.players.p1.score);
-        $("#p2-score").text(roomSnapshot.players.p2.score);
-    })
-
-    SwitchPage("online");
-}
-
-function UpdateOnlineMatch(playerMove) {
-
-    thisPlayer = sessionStorage.getItem("player");
-
-    $(".play-btn").attr("disabled", true);
-
-    room1Ref.once("value", function (snapshot) {
-        let roomSnapshot = snapshot.val();
-
-        switch (thisPlayer) {
-            case roomSnapshot.players.p1.username:
-                p1Move = playerMove;
-                if (roomSnapshot.players.p2.move) {
-                    p2Move = roomSnapshot.players.p2.move;
-                    EvaluateRound(p1Move, p2Move);
-                }
-
-                break;
-            case roomSnapshot.players.p2.username:
-                p2Move = playerMove;
-                if (roomSnapshot.players.p1.move) {
-                    p1Move = roomSnapshot.players.p1.move;
-                    EvaluateRound(p1Move, p2Move);
-                }
-
-                break;
         }
-    })
-
+    }
 }
 
 function UpdatePlayerConnections() {
