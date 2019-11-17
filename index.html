@@ -8,13 +8,15 @@
 
     <!-- JQuery -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    
-    <!-- Bootstrap / CSS -->
-    <link rel="stylesheet" type="text/css" href="assets/css/reset.css">
+
+    <!-- Bootstrap / CSS / Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Freckle+Face&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Baloo+Thambi&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Bowlby+One+SC&display=swap" rel="stylesheet">    <link rel="stylesheet" type="text/css" href="assets/css/reset.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/style.css">
-    
+
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-database.js"></script>
@@ -25,64 +27,64 @@
 <body>
 
     <div id="content" class="row">
-    
+
         <div id="content-menu" class="col-lg-12 rps">
-            <h1>Rock - Paper - Scissors</h1>
+            <h1 id="title">Rock | Paper | Scissors</h1>
             <h3 id="menu-msg" class="rps">Select A Mode</h3>
             <button id="mode-solo" class="rps-btn">Solo Play</button>
             <button id="mode-online" class="rps-btn">Online Play</button>
             <button id="reset" class="rps-btn">Reset</button>
         </div>
-    
+
         <div id="content-entry" class="col-lg-12 rps">
             <input id="input-username" type="text" placeholder="Enter a username">
-            <button id="join" class="mp-btn">Join</button>
+            <button id="join" class="rps-btn">Join</button>
             <button class="rps-btn leave">Leave</button>
-            <p>Player 1: <span id="p1_status"></span></p>
-            <p>Player 2: <span id="p2_status"></span></p>
-
-            <div id="content-online" class="col-lg-12 rps">
-                <!-- <textarea id="online-text" readonly cols="30" rows="10"></textarea> -->
-                <button value="rock" class="play-btn">Rock</button>
-                <button value="paper" class="play-btn">Paper</button>
-                <button value="scissors" class="play-btn">Scissors</button>
-                <button id="rematch-online" class="rps-btn rematch">Rematch</button>
-
-                <div id="content-online-gameinfo" class="col-lg-12 rps">
-                    <h4 id="p1">
-                        <span id="p1-username"></span> | 
-                        <span id="p1-score"></span>
-                    </h4>
-                    <h4 id="p2">
-                        <span id="p2-username"></span> | 
-                        <span id="p2-score"></span>
-                    </h4>
-                    <h4><span class="game-msg"></span></h4>
-                </div>
-
-            </div>
-
+            <h4>Player 1: <span id="p1_status"></span></h4>
+            <h4>Player 2: <span id="p2_status"></span></h4>
         </div>
-    
-        <div id="content-solo" class="col-lg-12 rps">
-    
-            <p>Wins: <span id="win"></span></p>
-            <p>Losses: <span id="loss"></span></p>
-            <p>Draws: <span id="draw"></span></p>
-    
+
+        <div id="content-online" class="col-lg-12 rps">
+            <!-- <textarea id="online-text" readonly cols="30" rows="10"></textarea> -->
             <button value="rock" class="play-btn">Rock</button>
             <button value="paper" class="play-btn">Paper</button>
             <button value="scissors" class="play-btn">Scissors</button>
-            <button id="rematch-solo" class="rps-btn rematch">Rematch</button>
-            <button class="rps-btn leave">Leave</button>
-    
-            <h4><span class="game-msg"></span></h4>
-    
+            <button id="rematch-online" class="rps-btn rematch">Rematch</button>
+
+            <div id="content-online-gameinfo" class="col-lg-12 rps">
+                <h4 id="p1">
+                    <span id="p1-username"></span> |
+                    <span id="p1-score"></span>
+                </h4>
+                <h4 id="p2">
+                    <span id="p2-username"></span> |
+                    <span id="p2-score"></span>
+                </h4>
+                <h4><span class="game-msg"></span></h4>
+            </div>
         </div>
-    
+
+        <div id="content-solo" class="col-lg-12 rps">
+
+            <div id="score-solo" class="row">
+                <p>Wins: <span id="win"></span> | Losses: <span id="loss"></span> | Draws: <span id="draw"></span></p>
+            </div>
+
+            <div id="buttons-solo" class="row">
+                <button value="rock" class="play-btn">Rock</button>
+                <button value="paper" class="play-btn">Paper</button>
+                <button value="scissors" class="play-btn">Scissors</button>
+                <button id="rematch-solo" class="rps-btn rematch">Rematch</button>
+                <button class="rps-btn leave">Leave</button>
+            </div>
+
+            <h4><span class="game-msg"></span></h4>
+
+        </div>
+
     </div>
 
-    
+
 
     <script src="assets/javascript/main.js"></script>
 

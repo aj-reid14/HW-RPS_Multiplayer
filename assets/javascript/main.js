@@ -28,10 +28,11 @@ let mode;
 let thisPlayer;
 let p1Move = "";
 let p2Move = "";
+let currP1Score = 0;
+let currP2Score = 0;
 
 $(document).ready(function () {
 
-    // ClearSessionStorage();
     SwitchPage("home");
     ConfigureButtons();
     ConfigureFirebase();
@@ -44,9 +45,9 @@ $(document).ready(function () {
 function ConfigureButtons() {
     $("#mode-solo").click(function () {
         mode = "solo";
+        ResetSoloGame();
         SwitchPage("solo");
         gameActive = true;
-        ResetSoloGame();
     })
 
     $("#mode-online").click(function () {
@@ -78,7 +79,6 @@ function ConfigureButtons() {
                 break;
 
             case "online":
-                console.log($(this).css("border-color"));
                 gameActive = true;
                 RestartOnlineMatch();
                 break;
@@ -173,6 +173,12 @@ function ConfigureButtons() {
                 $(".game-msg").text("");
                 break;
             case "online":
+
+                // -------------------------------------------------
+                // Temporary while disconnected from the Internet
+                SwitchPage("home");
+                // -------------------------------------------------
+
                 UpdatePlayerConnections();
                 $("#join").attr("disabled", false);
                 $("#input-username").attr("disabled", false);
@@ -196,7 +202,11 @@ function ConfigureFirebase() {
             con.onDisconnect().remove();
 
             room1Ref.once("value").then(function (roomSnapshot) {
-                UpdatePlayerConnections();
+                roomSnapshot = roomSnapshot.val();
+                if (roomSnapshot.gameInfo.playersConnected === 0)
+                    ResetFirebase();
+                else
+                    UpdatePlayerConnections();
             })
 
         }
@@ -240,11 +250,22 @@ function ConfigureFirebase() {
         if (roomSnapshot.p1.move === "rematch" && roomSnapshot.p2.move === "rematch") {
             $("#rematch-online").hide();
             $(".play-btn").attr("disabled", false);
-            $(".play-btn").css("border-color", "rgb(221, 221, 221)");
+            $(".play-btn").css("border-color", "darkred");
         }
 
         $("#p1_status").text(roomSnapshot.p1.username + " " + roomSnapshot.p1.status);
         $("#p2_status").text(roomSnapshot.p2.username + " " + roomSnapshot.p2.status);
+
+        if (roomSnapshot.p1.status === "[connected]")
+            $("#p1_status").css("color", "darkgreen");
+        else
+            $("#p1_status").css("color", "black");
+
+        if (roomSnapshot.p2.status === "[connected]")
+            $("#p2_status").css("color", "darkgreen");
+        else
+            $("#p2_status").css("color", "black");
+
         $("#p1-score").text(roomSnapshot.p1.score);
         $("#p2-score").text(roomSnapshot.p2.score);
     })
@@ -276,11 +297,10 @@ function ResetFirebase() {
 }
 
 function ResetSoloGame() {
+    $("#rematch-solo").hide();
     cpuChoice = choices[Math.floor(Math.random() * 3)];
-
     console.log("CPU: " + cpuChoice);
-
-    game_msg = "Make Your Move!";
+    game_msg = "Make Your Move Against the CPU!";
     UpdateScore();
 }
 
@@ -438,7 +458,7 @@ function EvaluateRound(p1_move, p2_move) {
         }
 
         UpdateScore();
-
+        $("#rematch-solo").show();
         gameActive = false;
 
     }
@@ -534,14 +554,14 @@ function UpdatePlayerConnections() {
                     room1Ref.set({
                         players: {
                         p1: {
-                            username: roomSnapshot.players.p2.username,
-                            status: roomSnapshot.players.p2.status,
+                            username: "",
+                            status: "[not connected]",
                             move: "",
                             score: 0
                         },
                         p2: {
-                            username: "",
-                            status: "[not connected]",
+                            username: roomSnapshot.players.p2.username,
+                            status: roomSnapshot.players.p2.status,
                             move: "",
                             score: 0,
                         }

@@ -1,3 +1,144 @@
+body {
+    background: url("../images/background.jpg") no-repeat 50% fixed / cover;
+}
+
+#win {
+    color: olive;
+}
+
+#loss {
+    color: darkred;
+}
+
+#draw {
+    color: darkcyan;
+}
+
+button {
+    font-family: 'Freckle Face', cursive;
+    font-size: 20px;
+    margin: 5px;
+    border-radius: 25%;
+}
+
+#content {
+    font-family: 'Baloo Thambi', cursive;
+    position: relative;
+    width: 80%;
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 10px groove rgb(48, 48, 48);
+    text-align: center;
+    margin: 10% auto;
+}
+
+#content-menu {
+    text-decoration: underline;
+}
+
+#title {
+    font-family: 'Bowlby One SC', cursive;
+}
+
+#score-solo {
+    margin-top: 15px;
+    display: block;
+    text-align: center;
+    font-size: 20px;
+}
+
+#buttons-solo {
+    display: block;
+    text-align: center;
+    padding: auto;
+}
+
+#content-entry {
+    font-family: 'Baloo Thambi', cursive;
+}
+
 #rematch-online {
     display: none;
+}
+
+.rps-btn {
+    background-color: white;
+    border: 5px ridge darkgrey;
+}
+
+.rps-btn:hover {
+animation: animateColor 4s linear 0s infinite alternate; 
+-o-animation: animateColor 4s linear 0s infinite alternate;
+-moz-animation: animateColor 4s linear 0s infinite alternate;
+-webkit-animation: animateColor 4s linear 0s infinite alternate;
+}
+
+.play-btn {
+border: 5px ridge darkred;
+}
+
+.play-btn:hover {
+border-color: darkgreen;
+animation: animateBorderColor 2s linear 0s infinite alternate; 
+-o-animation: animateBorderColor 2s linear 0s infinite alternate;
+-moz-animation: animateBorderColor 2s linear 0s infinite alternate;
+-webkit-animation: animateBorderColor 2s linear 0s infinite alternate;
+}
+
+/* ------------------------------- */
+/*      RPS Button Animations      */
+/* ------------------------------- */
+@keyframes animateColor {
+    0%   {background-color: lightgoldenrodyellow}
+    25%  {background-color: lightgreen}
+    50%  {background-color: lightblue}
+    75%  {background-color: lightcoral}
+    100% {background-color: lightslategray}
+}
+
+@-o-keyframes animateColor {
+    0%   {background-color: lightgoldenrodyellow}
+    25%  {background-color: lightgreen}
+    50%  {background-color: lightblue}
+    75%  {background-color: lightcoral}
+    100% {background-color: lightslategray}
+}
+
+@-moz-keyframes animateColor {
+    0%   {background-color: lightgoldenrodyellow}
+    25%  {background-color: lightgreen}
+    50%  {background-color: lightblue}
+    75%  {background-color: lightcoral}
+    100% {background-color: lightslategray}
+}
+
+@-webkit-keyframes animateColor {
+    0%   {background-color: lightgoldenrodyellow}
+    25%  {background-color: lightgreen}
+    50%  {background-color: lightblue}
+    75%  {background-color: lightcoral}
+    100% {background-color: lightslategray}
+}
+
+/* ------------------------------- */
+/*      Play Button Animations     */
+/* ------------------------------- */
+
+@keyframes animateBorderColor {
+    from {border-color: darkgreen;}
+    to {border-color: lightgreen;}
+}
+
+@-o-keyframes animateBorderColor {
+    from {border-color: darkgreen;}
+    to {border-color: lightgreen;}
+}
+
+@-moz-keyframes animateBorderColor {
+    from {border-color: darkgreen;}
+    to {border-color: lightgreen;}
+}
+
+@-webkit-keyframes animateBorderColor {
+    from {border-color: darkgreen;}
+    to {border-color: lightgreen;}
 }
