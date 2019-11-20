@@ -30,7 +30,7 @@ let p1Move = "";
 let p2Move = "";
 let currP1Score = 0;
 let currP2Score = 0;
-let numIMGs = parseInt($("#falling-imgs").attr("max"));
+let numIMGs = 0;
 let imgInterval;
 let imgsFalling = false;
 
@@ -311,7 +311,6 @@ function ResetFirebase() {
 
 function ResetSoloGame() {
 
-    numIMGs = parseInt($("#falling-imgs").attr("max"));
     StopFallingIMGs();
 
     $("#rematch-solo").hide();
@@ -376,7 +375,6 @@ function UpdateOnlineMatch(playerMove) {
 function RestartOnlineMatch() {
 
     StopFallingIMGs();
-    numIMGs = parseInt($("#falling-imgs").attr("max"));
 
     let playersReady = false;
     thisPlayer = sessionStorage.getItem("player");
@@ -578,7 +576,10 @@ function SetupFallingIMGs(winningIMG) {
             break;
     }
 
-    imgInterval = setInterval(ShowFallingIMGs, 500, imgSrc);
+    if (numIMGs === 0) {
+        numIMGs = parseInt($("#falling-imgs").attr("max"));
+        imgInterval = setInterval(ShowFallingIMGs, 500, imgSrc);
+    }
 }
 
 function ShowFallingIMGs(src) {
@@ -618,6 +619,7 @@ function ShowFallingIMGs(src) {
 }
 
 function StopFallingIMGs() {
+    numIMGs = 0;
     $(".gif").fadeOut(500, function() {$("#falling-imgs").empty();});
     clearInterval(imgInterval);
 }
