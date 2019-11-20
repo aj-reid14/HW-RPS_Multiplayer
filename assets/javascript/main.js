@@ -30,20 +30,23 @@ let p1Move = "";
 let p2Move = "";
 let currP1Score = 0;
 let currP2Score = 0;
+let numIMGs = parseInt($("#falling-imgs").attr("max"));
+let imgInterval;
+let imgsFalling = false;
 
 $(document).ready(function () {
 
+    // Start on 'Home' Page
     SwitchPage("home");
+
+    // Configure All Buttons & Firebase Updates
     ConfigureButtons();
     ConfigureFirebase();
-
-    $("#p1").attr("name", "");
-    $("#p2").attr("name", "");
-
 })
 
 function ConfigureButtons() {
     $("#mode-solo").click(function () {
+        // Set 'mode' to Solo and Start a New Solo Game
         mode = "solo";
         ResetSoloGame();
         SwitchPage("solo");
@@ -51,18 +54,22 @@ function ConfigureButtons() {
     })
 
     $("#mode-online").click(function () {
+        // Set 'mode' to Online and Switch Page to 'online-entry'
         mode = "online";
         SwitchPage("online-entry");
     })
 
     $(document.body).on("click", ".play-btn", function () {
         if (gameActive) {
+            // '.play-btn' should only be available when either Solo or Online game is running
             switch (mode) {
                 case "solo":
+                    // Evaulate the round based on the Player's Choice and the Random CPU's choice
                     let playerChoice = $(this).val();
                     EvaluateRound(playerChoice);
                     break;
                 case "online":
+                    // Update Online Match Info (Firebase) when '.play-btn' is pressed during an Online Match
                     $(this).css("border-color", "green")
                     UpdateOnlineMatch($(this).val());
                     break;
@@ -74,11 +81,13 @@ function ConfigureButtons() {
 
         switch (mode) {
             case "solo":
+                // Start a New Online Game
                 gameActive = true;
                 ResetSoloGame();
                 break;
 
             case "online":
+                // Initiate (or confirm) Rematch Request for Online Match
                 gameActive = true;
                 RestartOnlineMatch();
                 break;
@@ -87,9 +96,13 @@ function ConfigureButtons() {
 
     $("#join").click(function () {
 
+        let invalidUsername = false;
         thisPlayer = $("#input-username").val().trim();
 
-        if (!thisPlayer) {
+        if (!thisPlayer || (thisPlayer.indexOf(" ") !== -1))
+            invalidUsername = true;
+
+        if (invalidUsername) {
             $("#input-username").val("");
             $("#input-username").attr("placeholder", "Invalid Username!");
         }
@@ -97,64 +110,64 @@ function ConfigureButtons() {
 
             room1Ref.once("value").then(function (snapshot) {
 
-            let roomSnapshot = snapshot.val();
+                let roomSnapshot = snapshot.val();
 
-            if (roomSnapshot.gameInfo.playersConnected < 2) {
-                switch (roomSnapshot.gameInfo.playersConnected) {
-                    case 0:
-                        room1Ref.set({
-                            players: {
-                                p1: {
-                                    username: thisPlayer,
-                                    status: "[connected]",
-                                    move: "",
-                                    score: 0
-                                },
-                                p2: {
-                                    username: "",
-                                    status: "[not connected]",
-                                    move: "",
-                                    score: 0
-                                }
-                            },
-                            gameInfo: {
-                            playersConnected: 1,
-                            gameMessage: ""
-                            }
-                        });
-
-                        sessionStorage.setItem("player", thisPlayer)
-
-                        break;
-                    case 1:                        
+                if (roomSnapshot.gameInfo.playersConnected < 2) {
+                    switch (roomSnapshot.gameInfo.playersConnected) {
+                        case 0:
                             room1Ref.set({
                                 players: {
-                                p1: {
-                                    username: roomSnapshot.players.p1.username,
-                                    status: roomSnapshot.players.p1.status,
-                                    move: roomSnapshot.players.p1.move,
-                                    score: roomSnapshot.players.p1.score
+                                    p1: {
+                                        username: thisPlayer,
+                                        status: "[connected]",
+                                        move: "",
+                                        score: 0
+                                    },
+                                    p2: {
+                                        username: "",
+                                        status: "[not connected]",
+                                        move: "",
+                                        score: 0
+                                    }
                                 },
-                                p2: {
-                                    username: thisPlayer,
-                                    status: "[connected]",
-                                    move: "",
-                                    score: 0
+                                gameInfo: {
+                                    playersConnected: 1,
+                                    gameMessage: ""
                                 }
-                            },
-                            gameInfo: {
-                                playersConnected: 2,
-                                gameMessage: "Make Your Moves!"
-                            }
                             });
 
-                        sessionStorage.setItem("player", thisPlayer);
+                            sessionStorage.setItem("player", thisPlayer)
 
-                        break;
+                            break;
+                        case 1:
+                            room1Ref.set({
+                                players: {
+                                    p1: {
+                                        username: roomSnapshot.players.p1.username,
+                                        status: roomSnapshot.players.p1.status,
+                                        move: roomSnapshot.players.p1.move,
+                                        score: roomSnapshot.players.p1.score
+                                    },
+                                    p2: {
+                                        username: thisPlayer,
+                                        status: "[connected]",
+                                        move: "",
+                                        score: 0
+                                    }
+                                },
+                                gameInfo: {
+                                    playersConnected: 2,
+                                    gameMessage: "Make Your Moves!"
+                                }
+                            });
+
+                            sessionStorage.setItem("player", thisPlayer);
+
+                            break;
+                    }
                 }
-            }
-            else { }
-        });
+                else { }
+            });
 
             $(this).attr("disabled", true);
             $("#input-username").attr("disabled", true);
@@ -163,6 +176,8 @@ function ConfigureButtons() {
     })
 
     $(".leave").click(function () {
+
+        StopFallingIMGs();
 
         switch (mode) {
             case "solo":
@@ -173,16 +188,13 @@ function ConfigureButtons() {
                 $(".game-msg").text("");
                 break;
             case "online":
-
-                // -------------------------------------------------
-                // Temporary while disconnected from the Internet
-                SwitchPage("home");
-                // -------------------------------------------------
-
                 UpdatePlayerConnections();
                 $("#join").attr("disabled", false);
                 $("#input-username").attr("disabled", false);
+                $("#input-username").attr("placeholder", "Enter a username");
                 $("#input-username").val("");
+                $(".play-btn").css("border-color", "darkred");
+                SwitchPage("home");
                 break;
         }
     })
@@ -212,12 +224,13 @@ function ConfigureFirebase() {
         }
     })
 
-    room1Ref_gameInfo.on("value", function(snapshot) {
+    room1Ref_gameInfo.on("value", function (snapshot) {
         let roomInfo = snapshot.val();
 
-        $(".game-msg").text(roomInfo.gameMessage);
-
+        
         if (mode === "online") {
+            $(".game-msg").text(roomInfo.gameMessage);
+       
             if (roomInfo.playersConnected === 2) {
                 StartOnlineMatch();
             }
@@ -297,6 +310,10 @@ function ResetFirebase() {
 }
 
 function ResetSoloGame() {
+
+    numIMGs = parseInt($("#falling-imgs").attr("max"));
+    StopFallingIMGs();
+
     $("#rematch-solo").hide();
     cpuChoice = choices[Math.floor(Math.random() * 3)];
     console.log("CPU: " + cpuChoice);
@@ -324,7 +341,7 @@ function StartOnlineMatch() {
 
     gameActive = true;
 
-    room1Ref.once("value", function(snapshot) {
+    room1Ref.once("value", function (snapshot) {
         let roomSnapshot = snapshot.val();
 
         $("#p1-username").text(roomSnapshot.players.p1.username);
@@ -357,6 +374,9 @@ function UpdateOnlineMatch(playerMove) {
 }
 
 function RestartOnlineMatch() {
+
+    StopFallingIMGs();
+    numIMGs = parseInt($("#falling-imgs").attr("max"));
 
     let playersReady = false;
     thisPlayer = sessionStorage.getItem("player");
@@ -418,6 +438,7 @@ function EvaluateRound(p1_move, p2_move) {
                     case "scissors":
                         wins++;
                         game_msg = "You Win!";
+                        SetupFallingIMGs(p1_move);
                         break;
                 }
                 break;
@@ -427,6 +448,7 @@ function EvaluateRound(p1_move, p2_move) {
                     case "rock":
                         wins++;
                         game_msg = "You Win!";
+                        SetupFallingIMGs(p1_move);
                         break;
                     case "paper":
                         draws++;
@@ -448,6 +470,7 @@ function EvaluateRound(p1_move, p2_move) {
                     case "paper":
                         wins++;
                         game_msg = "You Win!";
+                        SetupFallingIMGs(p1_move);
                         break;
                     case "scissors":
                         draws++;
@@ -484,10 +507,12 @@ function EvaluateRound(p1_move, p2_move) {
                             case "paper":
                                 p2_score++;
                                 roundResult = roomSnapshot.players.p2.username + " Wins!";
+                                SetupFallingIMGs(p2_move);
                                 break;
                             case "scissors":
                                 p1_score++;
                                 roundResult = roomSnapshot.players.p1.username + " Wins!";
+                                SetupFallingIMGs(p1_move);
                                 break;
                         }
                         break;
@@ -497,6 +522,7 @@ function EvaluateRound(p1_move, p2_move) {
                             case "rock":
                                 p1_score++;
                                 roundResult = roomSnapshot.players.p1.username + " Wins!";
+                                SetupFallingIMGs(p1_move);
                                 break;
                             case "paper":
                                 roundResult = "Draw!";
@@ -504,6 +530,7 @@ function EvaluateRound(p1_move, p2_move) {
                             case "scissors":
                                 p2_score++;
                                 roundResult = roomSnapshot.players.p2.username + " Wins!";
+                                SetupFallingIMGs(p2_move);
                                 break;
                         }
                         break;
@@ -513,10 +540,12 @@ function EvaluateRound(p1_move, p2_move) {
                             case "rock":
                                 p2_score++;
                                 roundResult = roomSnapshot.players.p2.username + " Wins!";
+                                SetupFallingIMGs(p2_move);
                                 break;
                             case "paper":
                                 p1_score++;
                                 roundResult = roomSnapshot.players.p1.username + " Wins!";
+                                SetupFallingIMGs(p1_move);
                                 break;
                             case "scissors":
                                 roundResult = "Draw!";
@@ -531,6 +560,66 @@ function EvaluateRound(p1_move, p2_move) {
             })
         }
     }
+}
+
+function SetupFallingIMGs(winningIMG) {
+
+    let imgSrc;
+
+    switch (winningIMG) {
+        case "rock":
+            imgSrc = "assets/images/rock.png";
+            break;
+        case "paper":
+            imgSrc = "assets/images/paper.png";
+            break;
+        case "scissors":
+            imgSrc = "assets/images/scissors.png";
+            break;
+    }
+
+    imgInterval = setInterval(ShowFallingIMGs, 500, imgSrc);
+}
+
+function ShowFallingIMGs(src) {
+
+    if (numIMGs === 0) {
+        StopFallingIMGs();
+    } else {
+
+        numIMGs--;
+
+        let divWidth = Math.floor($("#falling-imgs").width());
+        let maxIMGarea = Math.floor(divWidth * 0.7);
+        let randSpeed = (Math.floor(Math.random() * 4) + 2) + "s";
+
+        let imgID = "thisGIF" + numIMGs;
+
+        let newGIF = $("<img class='gif'>");
+        newGIF.attr("id", imgID);
+        newGIF.attr("src", src);
+        newGIF.css("position", "fixed");
+        newGIF.css("animation-duration", randSpeed);       
+
+        $("#falling-imgs").append(newGIF);
+
+        let startingX = parseInt($("#falling-imgs").css("left")) + Math.floor((divWidth - maxIMGarea) / 2);
+        let randX = Math.floor(Math.random() * maxIMGarea) + startingX;
+        console.log(`${imgID}: ${randX}`);
+        let imgSpeed = 900 * parseInt(newGIF.css("animation-duration").substring(0, newGIF.css("animation-duration").length - 1));
+        $("#" + imgID).offset({ top: 0, left: randX});
+
+        setTimeout(function () {
+            $("#" + imgID).fadeOut(500, function() {$("#" + imgID).remove();}); 
+        }, imgSpeed);
+    }
+
+
+}
+
+function StopFallingIMGs() {
+    $(".gif").fadeOut(500, function() {$("#falling-imgs").empty();});
+    clearInterval(imgInterval);
 }
 
 function UpdatePlayerConnections() {
@@ -553,51 +642,50 @@ function UpdatePlayerConnections() {
                 case roomSnapshot.players.p1.username:
                     room1Ref.set({
                         players: {
-                        p1: {
-                            username: "",
-                            status: "[not connected]",
-                            move: "",
-                            score: 0
+                            p1: {
+                                username: "",
+                                status: "[not connected]",
+                                move: "",
+                                score: 0
+                            },
+                            p2: {
+                                username: roomSnapshot.players.p2.username,
+                                status: roomSnapshot.players.p2.status,
+                                move: "",
+                                score: 0,
+                            }
                         },
-                        p2: {
-                            username: roomSnapshot.players.p2.username,
-                            status: roomSnapshot.players.p2.status,
-                            move: "",
-                            score: 0,
+                        gameInfo: {
+                            playersConnected: remainingPlayers,
+                            gameMessage: ""
                         }
-                    },
-                    gameInfo: {
-                        playersConnected: remainingPlayers,
-                        gameMessage: ""
-                    }
                     })
                     break;
                 case roomSnapshot.players.p2.username:
                     room1Ref.set({
                         players: {
-                        p1: {
-                            username: roomSnapshot.players.p1.username,
-                            status: roomSnapshot.players.p1.status,
-                            move: "",
-                            score: 0
+                            p1: {
+                                username: roomSnapshot.players.p1.username,
+                                status: roomSnapshot.players.p1.status,
+                                move: "",
+                                score: 0
+                            },
+                            p2: {
+                                username: "",
+                                status: "[not connected]",
+                                move: "",
+                                score: 0
+                            }
                         },
-                        p2: {
-                            username: "",
-                            status: "[not connected]",
-                            move: "",
-                            score: 0
+                        gameInfo: {
+                            playersConnected: remainingPlayers,
+                            gameMessage: ""
                         }
-                    },
-                    gameInfo: {
-                        playersConnected: remainingPlayers,
-                        gameMessage: ""
-                    }
                     })
                     break;
             }
             sessionStorage.removeItem("player");
             thisPlayer = "";
-            SwitchPage("home");
         }
     })
 }

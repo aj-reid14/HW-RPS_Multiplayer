@@ -1,5 +1,34 @@
 body {
-    background: url("../images/background.jpg") no-repeat 50% fixed / cover;
+    /* background: url("../images/background.jpg") no-repeat 50% fixed / cover; */
+    background-color: black;
+}
+
+.gif {
+    width: 100px;
+    height: 100px;
+    animation: animateIMG 3s linear 0s forwards;
+}
+
+#falling-imgs {
+    z-index: -5;
+    position: absolute;
+    top: 0;
+    left: 25%;
+    width: 50%;
+    height: 100%;
+    background-image: linear-gradient(rgb(176, 246, 255), black);
+    /* background-color: rgb(189, 189, 189); */
+    /* background-image: url("../images/background.gif"); */
+}
+
+#content {
+    z-index: 10;
+    font-family: 'Baloo Thambi', cursive;
+    width: 80%;
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 10px groove rgb(48, 48, 48);
+    text-align: center;
+    margin: 10% auto;
 }
 
 #win {
@@ -21,14 +50,8 @@ button {
     border-radius: 25%;
 }
 
-#content {
-    font-family: 'Baloo Thambi', cursive;
-    position: relative;
-    width: 80%;
-    background-color: rgba(255, 255, 255, 0.5);
-    border: 10px groove rgb(48, 48, 48);
-    text-align: center;
-    margin: 10% auto;
+button:hover {
+    color: rgb(116, 87, 13);
 }
 
 #content-menu {
@@ -85,13 +108,13 @@ animation: animateBorderColor 2s linear 0s infinite alternate;
 }
 
 /* ------------------------------- */
-/*      RPS Button Animations      */
+/*      ".rps-btn" Animations      */
 /* ------------------------------- */
+
 @keyframes animateColor {
     0%   {background-color: lightgoldenrodyellow}
     25%  {background-color: lightgreen}
     50%  {background-color: lightblue}
-    75%  {background-color: lightcoral}
     100% {background-color: lightslategray}
 }
 
@@ -99,7 +122,6 @@ animation: animateBorderColor 2s linear 0s infinite alternate;
     0%   {background-color: lightgoldenrodyellow}
     25%  {background-color: lightgreen}
     50%  {background-color: lightblue}
-    75%  {background-color: lightcoral}
     100% {background-color: lightslategray}
 }
 
@@ -107,7 +129,6 @@ animation: animateBorderColor 2s linear 0s infinite alternate;
     0%   {background-color: lightgoldenrodyellow}
     25%  {background-color: lightgreen}
     50%  {background-color: lightblue}
-    75%  {background-color: lightcoral}
     100% {background-color: lightslategray}
 }
 
@@ -115,12 +136,11 @@ animation: animateBorderColor 2s linear 0s infinite alternate;
     0%   {background-color: lightgoldenrodyellow}
     25%  {background-color: lightgreen}
     50%  {background-color: lightblue}
-    75%  {background-color: lightcoral}
     100% {background-color: lightslategray}
 }
 
 /* ------------------------------- */
-/*      Play Button Animations     */
+/*      ".play-btn" Animations     */
 /* ------------------------------- */
 
 @keyframes animateBorderColor {
@@ -141,4 +161,13 @@ animation: animateBorderColor 2s linear 0s infinite alternate;
 @-webkit-keyframes animateBorderColor {
     from {border-color: darkgreen;}
     to {border-color: lightgreen;}
+}
+
+/* ------------------------------- */
+/*         img Animations          */
+/* ------------------------------- */
+
+@keyframes animateIMG {
+    from {top: -150px; transform: rotate(0deg);}
+    to {top: 100%; transform: rotate(540deg);}
 }
