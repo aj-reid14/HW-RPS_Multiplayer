@@ -237,7 +237,6 @@ function ConfigureFirebase() {
             else {
                 gameActive = false;
                 $(".play-btn").attr("disabled", false);
-                SwitchPage("online-entry");
             }
         }
     })
@@ -645,14 +644,14 @@ function UpdatePlayerConnections() {
                     room1Ref.set({
                         players: {
                             p1: {
-                                username: "",
-                                status: "[not connected]",
+                                username: roomSnapshot.players.p2.username,
+                                status: roomSnapshot.players.p2.status,
                                 move: "",
                                 score: 0
                             },
                             p2: {
-                                username: roomSnapshot.players.p2.username,
-                                status: roomSnapshot.players.p2.status,
+                                username: "",
+                                status: "[not connected]",
                                 move: "",
                                 score: 0,
                             }
