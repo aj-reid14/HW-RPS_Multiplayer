@@ -1,5 +1,4 @@
 body {
-    /* background: url("../images/background.jpg") no-repeat 50% fixed / cover; */
     background-color: black;
 }
 
@@ -17,8 +16,6 @@ body {
     width: 50%;
     height: 100%;
     background-image: linear-gradient(rgb(176, 246, 255), black);
-    /* background-color: rgb(189, 189, 189); */
-    /* background-image: url("../images/background.gif"); */
 }
 
 #content {
